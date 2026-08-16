@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./logo.png" alt="docsGround Logo" width="140" height="140" style="border-radius: 24px; margin-bottom: 16px;" />
+  <img src="./assets/logo.svg" alt="docsGround" width="140" height="140" />
   <h1>docsGround</h1>
   <p><strong>Universal Documentation Grounding & Search Engine for AI Coding Agents</strong></p>
   <p>
@@ -8,6 +8,12 @@
     <a href="#mcp-tools">MCP Tools</a> •
     <a href="#architecture">Architecture</a> •
     <a href="#rest-api">REST API</a>
+  </p>
+  <p>
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/youssefvdel/docsGround/ci.yml?branch=main&label=CI" />
+    <img alt="License" src="https://img.shields.io/github/license/youssefvdel/docsGround" />
+    <img alt="Bun" src="https://img.shields.io/badge/runtime-Bun%201.3-black" />
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-blue" />
   </p>
 </div>
 
@@ -30,24 +36,28 @@ AI models hallucinate when coding with modern or rapidly evolving libraries. Tra
 
 ## Quick Start
 
-### 1. Start the HTTP & Web UI Server
+Requires [Bun](https://bun.sh) 1.3+.
+
 ```bash
+git clone https://github.com/youssefvdel/docsGround.git
+cd docsGround
+bun install
+
+# Start the Web UI + REST API (default port 3030)
 bun run src/index.ts serve
+
+# Run as a Stdio MCP server (default mode)
+bun run src/index.ts mcp
+
+# Ingest a library from the CLI
+bun run src/index.ts ingest tauri https://docs.rs/tauri/latest/tauri/
 ```
+
 Open **`http://localhost:3030`** (or your LAN IP `http://192.168.x.x:3030`) in your browser.
 
-### 2. Run as an MCP Server for AI Agents
-Add to your agent's MCP config:
-```json
-{
-  "mcpServers": {
-    "docsground": {
-      "command": "bun",
-      "args": ["run", "/home/youssefvdel/Projects/docsGround/src/index.ts", "mcp"]
-    }
-  }
-}
-```
+### Embedding model
+
+The default embedding provider is the **built-in local ONNX BGE-Small model** — fully offline, zero API cost, ~15ms per document. You can switch to a remote OpenAI-compatible gateway from the UI (Settings → Embedding Provider), e.g. `http://127.0.0.1:20128/v1`.
 
 ---
 
@@ -64,16 +74,75 @@ Add to your agent's MCP config:
 | `delete_library` | Delete a library and cascade-clean its vectors |
 | `rename_library` | Rename an indexed library collection |
 
+### Register with an MCP client
+
+```json
+{
+  "mcpServers": {
+    "docsground": {
+      "command": "bun",
+      "args": ["run", "/absolute/path/to/docsGround/src/index.ts", "mcp"]
+    }
+  }
+}
+```
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    classDef input fill:#a5d8ff,stroke:#1971c2,color:#0b2545
+    classDef core fill:#b2f2bb,stroke:#2f9e44,color:#0b3d1e
+    classDef store fill:#c3fae8,stroke:#0ca678,color:#063d2d
+
+    UI["React Web UI :3030"]:::input
+    MCP["MCP Server (stdio)"]:::input
+    CLI["CLI ingest"]:::input
+
+    API["Bun.serve REST API"]:::core
+    API --> E["Search Engine"]:::core
+    API --> J["Job Manager"]:::core
+    API --> C["Config Manager"]:::core
+
+    E --> DB[("SQLite FTS5 + Vector BLOB")]:::store
+    E --> SE["SearxNG Multi-Engine Meta Search"]:::core
+    E --> EM["Local ONNX BGE Embeddings"]:::core
+
+    F["StealthFetcher (HTTP/2 + LinkeDOM)"]:::core
+    F --> P["DocParser"]:::core
+    P --> DB
+
+    UI --> API
+    MCP --> API
+    CLI --> API
+```
+
 ---
 
 ## REST API Reference
 
-- `GET /api/search?q=<query>&library=<lib>&limit=10` — Perform hybrid semantic + FTS5 search.
+- `GET /api/search?q=<query>&library=<lib>&limit=10` — Hybrid semantic + FTS5 search with live-web fallback.
 - `GET /api/libraries` — List all indexed libraries and page counts.
 - `GET /api/library-docs?library=<lib>` — List all document paths for a library.
+- `GET /api/doc?id=<doc_id>` — Fetch one indexed document's full content.
 - `POST /api/ingest` — Trigger background non-blocking documentation indexing with live progress tracking.
 - `GET /api/jobs` — Poll active and completed ingestion tasks with progress percentage.
 - `GET /api/config` / `POST /api/config` — View and update runtime configuration.
+- `POST /api/web-search` — Live multi-engine meta-search.
+- `POST /api/extract` — Fetch any URL and convert to clean Markdown.
+
+---
+
+## Development
+
+```bash
+bun test        # run the test suite
+bun run src/index.ts serve   # local dev server
+```
+
+Configuration lives in `~/.docsground/config.json` (created automatically on first run).
 
 ---
 

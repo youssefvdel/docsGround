@@ -1,3 +1,5 @@
+// @ts-nocheck — Browser-script bundle (React via CDN globals); transpiled at runtime by Bun.Transpiler, not part of the server type surface.
+// docsGround Web UI — Notion-style dark dashboard (see ../server/index.ts:getCompiledFrontendJs)
 const { useState, useEffect, useRef } = React;
 
     const Icons = {
@@ -429,7 +431,7 @@ const { useState, useEffect, useRef } = React;
                 className="px-3.5 py-3 flex items-center justify-between hover:bg-[#282828] cursor-pointer m-1 rounded transition text-xs"
               >
                 <div className="flex items-center gap-2">
-                  <img src="/logo.png" alt="docsGround" className="w-5 h-5 rounded-[6px] flex-shrink-0" />
+                  <img src="/logo.svg" alt="docsGround" className="w-5 h-5 rounded-[6px] flex-shrink-0" />
                   <span className="font-semibold text-white tracking-tight">docsGround</span>
                 </div>
                 <span className="text-[10px] text-[#787774] font-mono border border-[#2e2e2e] px-1 py-0.2 rounded bg-[#191919]">v1.0</span>
@@ -632,7 +634,7 @@ const { useState, useEffect, useRef } = React;
 
               <div className="max-w-4xl w-full mx-auto px-12 py-10 flex flex-col gap-8">
                 <div className="flex flex-col gap-3">
-                  <img src="/logo.png" alt="docsGround" className="w-10 h-10 rounded-xl flex-shrink-0 shadow-lg" />
+                  <img src="/logo.svg" alt="docsGround" className="w-10 h-10 rounded-xl flex-shrink-0 shadow-lg" />
                   <h1 className="text-3xl font-bold text-white tracking-tight">docsGround</h1>
                   <p className="text-xs text-[#9B9B9B]">Real-time grounding and symbol documentation index for AI coding agents.</p>
                 </div>

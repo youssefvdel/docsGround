@@ -36,12 +36,13 @@ export function createHttpServer(engine: Engine, port: number = 3030) {
         return new Response(null, { headers });
       }
 
-      // Serve app icon / logo
-      if (url.pathname === "/logo.png") {
-        const logoPath = join(import.meta.dir, "../../logo.png");
+      // Serve app icon / logo (SVG preferred, PNG fallback)
+      if (url.pathname === "/logo.svg" || url.pathname === "/logo.png") {
+        const isSvg = url.pathname.endsWith(".svg");
+        const logoPath = join(import.meta.dir, isSvg ? "../../assets/logo.svg" : "../../logo.png");
         if (existsSync(logoPath)) {
           return new Response(new Uint8Array(await Bun.file(logoPath).arrayBuffer()), {
-            headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400", ...headers }
+            headers: { "Content-Type": isSvg ? "image/svg+xml" : "image/png", "Cache-Control": "public, max-age=86400", ...headers }
           });
         }
         return new Response("Not Found", { status: 404 });
@@ -286,6 +287,7 @@ function getWebUiHtml(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <title>docsGround</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
