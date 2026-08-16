@@ -1,0 +1,21 @@
+{
+  "name": "docsground",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/mozilla-readability": "^0.2.1",
+    "@types/turndown": "^5.0.6"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@mozilla/readability": "^0.6.0",
+    "@types/node": "^26.2.0",
+    "linkedom": "^0.18.13",
+    "turndown": "^7.2.4"
+  }
+}
