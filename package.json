@@ -6,7 +6,8 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/mozilla-readability": "^0.2.1",
-    "@types/turndown": "^5.0.6"
+    "@types/turndown": "^5.0.6",
+    "typescript": "^5"
   },
   "peerDependencies": {
     "typescript": "^5"

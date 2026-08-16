@@ -29,4 +29,19 @@ describe("docsGround Core Engine", () => {
     const libs = engine.db.listLibraries();
     expect(libs.some(l => l.name === "test-lib")).toBe(true);
   });
+
+  it("should bootstrap a fresh config on first run without recursion (regression: get→save→get stack overflow)", () => {
+    const freshHome = join(tmpdir(), `docsground-fresh-${Date.now()}`);
+    const proc = Bun.spawnSync({
+      cmd: ["bun", "-e", "import {ConfigManager} from './src/core/config.ts'; const c = ConfigManager.get(); console.log(c.embedding.model)"],
+      cwd: join(import.meta.dir, ".."),
+      env: { ...process.env, HOME: freshHome },
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 15000
+    });
+    expect(proc.exitCode).toBe(0);
+    expect(proc.stdout.toString()).toContain("bge");
+    expect(proc.stderr.toString()).not.toContain("Maximum call stack");
+  });
 });

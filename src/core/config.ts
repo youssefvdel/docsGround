@@ -49,7 +49,7 @@ export class ConfigManager {
 
   public static get(): DocsGroundConfig {
     if (!existsSync(this.configPath)) {
-      this.save(DEFAULT_CONFIG);
+      this.persist(DEFAULT_CONFIG);
       return DEFAULT_CONFIG;
     }
     try {
@@ -106,5 +106,12 @@ export class ConfigManager {
     mkdirSync(dir, { recursive: true });
     writeFileSync(this.configPath, JSON.stringify(merged, null, 2));
     return merged;
+  }
+
+  /** Write a full config to disk without reading it back (breaks get→save recursion on first run). */
+  private static persist(config: DocsGroundConfig): void {
+    const dir = join(homedir(), ".docsground");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(this.configPath, JSON.stringify(config, null, 2));
   }
 }
