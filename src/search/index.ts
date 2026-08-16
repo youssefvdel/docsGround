@@ -1,3 +1,5 @@
+import { EmbeddedSearxNG } from "./embedded.js";
+
 export interface SearxResult {
   title: string;
   url: string;
@@ -9,11 +11,16 @@ export interface SearxResult {
 export class SearxClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = process.env.SEARXNG_URL || "http://127.0.0.1:8080") {
-    this.baseUrl = baseUrl.replace(/\/+$/, "");
+  constructor(customUrl?: string) {
+    this.baseUrl = (customUrl || process.env.SEARXNG_URL || EmbeddedSearxNG.baseUrl).replace(/\/+$/, "");
   }
 
-  public async search(query: string, limit: number = 5): Promise<SearxResult[]> {
+  public async search(query: string, limit: number = 8): Promise<SearxResult[]> {
+    // Make sure embedded instance is active if local
+    if (this.baseUrl.includes("127.0.0.1:28080")) {
+      await EmbeddedSearxNG.ensureRunning();
+    }
+
     const url = new URL(`${this.baseUrl}/search`);
     url.searchParams.set("q", query);
     url.searchParams.set("format", "json");
@@ -23,9 +30,9 @@ export class SearxClient {
       const res = await fetch(url.toString(), {
         headers: {
           Accept: "application/json",
-          "User-Agent": "docsGround/1.0"
+          "User-Agent": "docsGround/1.0",
         },
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(6000),
       });
 
       if (!res.ok) {
@@ -35,12 +42,12 @@ export class SearxClient {
       const data = (await res.json()) as { results?: any[] };
       if (!data.results) return [];
 
-      return data.results.slice(0, limit).map(r => ({
+      return data.results.slice(0, limit).map((r) => ({
         title: r.title || "Untitled",
         url: r.url,
         content: r.content || "",
         engine: r.engine || "searxng",
-        score: r.score
+        score: r.score,
       }));
     } catch {
       return [];

@@ -25,21 +25,39 @@ export function createMCPServer(engine: Engine) {
         {
           name: "search_docs",
           description:
-            "Search indexed official documentation or live web context for any tool, framework, or library.",
+            "Search indexed official documentation or hybrid vector+FTS5 context for any tool, framework, or library.",
           inputSchema: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "The search query (e.g. 'how to create pipeline in ratatui', 'useState hook')",
+                description: "The search query (e.g. 'ratatui layout constraint', 'bun sqlite WAL')",
               },
               library: {
                 type: "string",
-                description: "Optional library name filter (e.g. 'react', 'bun', 'xyflow')",
+                description: "Optional library filter",
               },
               limit: {
                 type: "number",
-                description: "Max number of results to return (default: 8)",
+                description: "Max results (default: 8)",
+              },
+            },
+            required: ["query"],
+          },
+        },
+        {
+          name: "web_search",
+          description: "Perform real-time web search via docsGround embedded SearxNG meta-search engine.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "Web search query",
+              },
+              limit: {
+                type: "number",
+                description: "Max search results (default: 8)",
               },
             },
             required: ["query"],
@@ -47,13 +65,13 @@ export function createMCPServer(engine: Engine) {
         },
         {
           name: "fetch_doc",
-          description: "Retrieve the full content of a specific documentation page by ID.",
+          description: "Retrieve full content of a specific doc page by ID or URL.",
           inputSchema: {
             type: "object",
             properties: {
               doc_id: {
                 type: "string",
-                description: "The unique document ID returned by search_docs",
+                description: "Document ID or URL",
               },
             },
             required: ["doc_id"],
@@ -61,21 +79,21 @@ export function createMCPServer(engine: Engine) {
         },
         {
           name: "scrape_and_index",
-          description: "Scrape and index a new documentation site or GitHub repo into the local database.",
+          description: "Scrape and index a new documentation site or GitHub repo.",
           inputSchema: {
             type: "object",
             properties: {
               library: {
                 type: "string",
-                description: "The name of the library (e.g. 'ratatui', 'xyflow')",
+                description: "Library name",
               },
               target: {
                 type: "string",
-                description: "The GitHub repo URL (e.g. 'https://github.com/ratatui/ratatui') or documentation URL",
+                description: "GitHub repo or Web URL",
               },
               subpath: {
                 type: "string",
-                description: "Subpath within the repo for docs (default: 'docs')",
+                description: "Subpath (default: 'docs')",
               },
             },
             required: ["library", "target"],
@@ -83,7 +101,7 @@ export function createMCPServer(engine: Engine) {
         },
         {
           name: "list_libraries",
-          description: "List all indexed documentation libraries in docsGround.",
+          description: "List all indexed libraries.",
           inputSchema: {
             type: "object",
             properties: {},
@@ -103,12 +121,17 @@ export function createMCPServer(engine: Engine) {
 
       const res = await engine.query(query, library, limit);
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(res, null, 2),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify(res, null, 2) }],
+      };
+    }
+
+    if (name === "web_search") {
+      const query = String(args?.query || "");
+      const limit = args?.limit ? Number(args.limit) : 8;
+
+      const res = await engine.searx.search(query, limit);
+      return {
+        content: [{ type: "text", text: JSON.stringify({ query, results: res }, null, 2) }],
       };
     }
 
@@ -118,16 +141,11 @@ export function createMCPServer(engine: Engine) {
       if (!doc) {
         return {
           isError: true,
-          content: [{ type: "text", text: `Document with ID "${docId}" not found.` }],
+          content: [{ type: "text", text: `Document "${docId}" not found.` }],
         };
       }
       return {
-        content: [
-          {
-            type: "text",
-            text: `# ${doc.title}\n\nSource: ${doc.url || doc.path}\n\n${doc.content}`,
-          },
-        ],
+        content: [{ type: "text", text: `# ${doc.title}\n\nSource: ${doc.url || doc.path}\n\n${doc.content}` }],
       };
     }
 
@@ -144,12 +162,7 @@ export function createMCPServer(engine: Engine) {
           type: target.includes("github.com") ? "git" : "web",
         });
         return {
-          content: [
-            {
-              type: "text",
-              text: `Successfully indexed ${result.indexed} document(s) for library "${library}".`,
-            },
-          ],
+          content: [{ type: "text", text: `Successfully indexed ${result.indexed} doc(s) for "${library}".` }],
         };
       } catch (err: any) {
         return {
@@ -162,12 +175,7 @@ export function createMCPServer(engine: Engine) {
     if (name === "list_libraries") {
       const libs = engine.db.listLibraries();
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(libs, null, 2),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify(libs, null, 2) }],
       };
     }
 
