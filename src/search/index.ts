@@ -17,8 +17,8 @@ export class SearxClient {
 
   /**
    * Search method:
-   * 1. If custom SearxNG endpoint configured by user, query it.
-   * 2. Default: Run 100% internal native meta-search (Zero Docker / Zero Python / Pure TS).
+   * 1. If user provided a remote SearxNG endpoint in settings, queries it.
+   * 2. Default: Uses docsGround's built-in native meta-search engine directly (Zero external dependencies).
    */
   public async search(query: string, limit: number = 8): Promise<SearxResult[]> {
     if (this.customUrl) {
@@ -51,7 +51,7 @@ export class SearxClient {
       } catch {}
     }
 
-    // Default: 100% Native Internal Meta-Search Engine
+    // Built-in Native Search Engine (Brave + DuckDuckGo + GitHub)
     return NativeMetaSearch.search(query, limit);
   }
 }
