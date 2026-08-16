@@ -1,35 +1,21 @@
-export interface EmbeddingConfig {
-  provider: "openai" | "local";
-  baseUrl?: string;
-  apiKey?: string;
-  model?: string;
-}
+import { ConfigManager } from "./config.js";
 
 export class EmbeddingEngine {
-  private static config: EmbeddingConfig = {
-    provider: (process.env.EMBEDDING_BASE_URL || process.env.OPENAI_BASE_URL) ? "openai" : "local",
-    baseUrl: (process.env.EMBEDDING_BASE_URL || process.env.OPENAI_BASE_URL || "http://127.0.0.1:20128/v1").replace(/\/+$/, ""),
-    apiKey: process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY || "dummy",
-    model: process.env.EMBEDDING_MODEL || "text-embedding-3-small"
-  };
-
   private static localExtractor: any = null;
 
-  public static configure(cfg: Partial<EmbeddingConfig>) {
-    this.config = { ...this.config, ...cfg };
-  }
-
   public static async embed(text: string): Promise<Float32Array> {
-    if (this.config.provider === "openai") {
+    const config = ConfigManager.get().embedding;
+
+    if (config.provider === "openai" && config.baseUrl) {
       try {
-        const res = await fetch(`${this.config.baseUrl}/embeddings`, {
+        const res = await fetch(`${config.baseUrl.replace(/\/+$/, "")}/embeddings`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${this.config.apiKey}`
+            Authorization: `Bearer ${config.apiKey || "dummy"}`
           },
           body: JSON.stringify({
-            model: this.config.model,
+            model: config.model || "text-embedding-3-small",
             input: text.slice(0, 8000)
           }),
           signal: AbortSignal.timeout(8000)
@@ -42,11 +28,10 @@ export class EmbeddingEngine {
           }
         }
       } catch {
-        // Fallback to local model if remote fails
+        // Fallback to local model
       }
     }
 
-    // Local fallback via Xenova Transformers
     return this.embedLocal(text);
   }
 
