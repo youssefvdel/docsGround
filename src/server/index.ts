@@ -434,6 +434,7 @@ function getWebUiHtml(): string {
       const [showAdvIngest, setShowAdvIngest] = useState(false);
       const [ingestMaxPages, setIngestMaxPages] = useState(500);
       const [ingestMaxDepth, setIngestMaxDepth] = useState(4);
+      const [ingestCleanReindex, setIngestCleanReindex] = useState(false);
 
       // Settings State
       const [settingsTab, setSettingsTab] = useState("general");
@@ -696,7 +697,7 @@ function getWebUiHtml(): string {
         if (!ingestLib || !ingestUrlsText) return;
 
         const lib = ingestLib.trim().toLowerCase();
-        const urls = ingestUrlsText.split(/[\\n,]+/).map(u => u.trim()).filter(Boolean);
+        const urls = ingestUrlsText.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
         const sub = ingestSubpath.trim();
 
         setIngestOpen(false);
@@ -711,13 +712,15 @@ function getWebUiHtml(): string {
               library: lib,
               targets: urls,
               subpath: sub,
+              cleanReindex: ingestCleanReindex,
               maxPages: ingestMaxPages,
               maxDepth: ingestMaxDepth
             })
           });
+          showToast("Started background crawl for '" + lib + "'", "info");
           pollJobs();
         } catch (err) {
-          console.error("Ingest trigger error:", err);
+          showToast("Ingest error: " + err.message, "error");
         }
       };
 
@@ -1506,35 +1509,45 @@ function getWebUiHtml(): string {
                     </div>
 
                     {showAdvIngest && (
-                      <div class="grid grid-cols-3 gap-3 pt-2 border-t border-[#262626]">
-                        <div>
-                          <label class="text-[#787774] block mb-1 text-[11px]">Subpath</label>
-                          <input
-                            type="text"
-                            value={ingestSubpath}
-                            onChange={(e) => setIngestSubpath(e.target.value)}
-                            placeholder="(optional, e.g. docs)"
-                            class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                          />
+                      <div class="flex flex-col gap-3 pt-2 border-t border-[#262626]">
+                        <div class="grid grid-cols-3 gap-3">
+                          <div>
+                            <label class="text-[#787774] block mb-1 text-[11px]">Subpath</label>
+                            <input
+                              type="text"
+                              value={ingestSubpath}
+                              onChange={(e) => setIngestSubpath(e.target.value)}
+                              placeholder="(optional, e.g. docs)"
+                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                            />
+                          </div>
+                          <div>
+                            <label class="text-[#787774] block mb-1 text-[11px]">Max Pages</label>
+                            <input
+                              type="number"
+                              value={ingestMaxPages}
+                              onChange={(e) => setIngestMaxPages(Number(e.target.value))}
+                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                            />
+                          </div>
+                          <div>
+                            <label class="text-[#787774] block mb-1 text-[11px]">Max Depth</label>
+                            <input
+                              type="number"
+                              value={ingestMaxDepth}
+                              onChange={(e) => setIngestMaxDepth(Number(e.target.value))}
+                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label class="text-[#787774] block mb-1 text-[11px]">Max Pages</label>
-                          <input
-                            type="number"
-                            value={ingestMaxPages}
-                            onChange={(e) => setIngestMaxPages(Number(e.target.value))}
-                            class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                          />
-                        </div>
-                        <div>
-                          <label class="text-[#787774] block mb-1 text-[11px]">Max Depth</label>
-                          <input
-                            type="number"
-                            value={ingestMaxDepth}
-                            onChange={(e) => setIngestMaxDepth(Number(e.target.value))}
-                            class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                          />
-                        </div>
+
+                        <CustomCheckbox
+                          id="ingestCleanReindex"
+                          checked={ingestCleanReindex}
+                          onChange={setIngestCleanReindex}
+                          label="Clean Re-index"
+                          description="Overwrite any previously indexed pages with fresh data"
+                        />
                       </div>
                     )}
                   </div>
