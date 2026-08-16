@@ -27,8 +27,8 @@ const DEFAULT_CONFIG: DocsGroundConfig = {
     model: "text-embedding-3-small"
   },
   search: {
-    searxngUrl: "http://127.0.0.1:28080",
-    autoStartEmbedded: true
+    searxngUrl: process.env.SEARXNG_URL || "http://127.0.0.1:8888",
+    autoStartEmbedded: false
   },
   server: {
     port: 3030,

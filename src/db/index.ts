@@ -3,7 +3,6 @@ import { join } from "path";
 import { homedir } from "os";
 import { mkdirSync } from "fs";
 import type { DocEntry, SearchResult } from "../core/types.js";
-import { EmbeddingEngine } from "../core/embeddings.js";
 
 export class DocDB {
   private db: Database;
@@ -71,6 +70,11 @@ export class DocDB {
         VALUES (new.rowid, new.title, new.content, new.symbols, new.headings);
       END;
     `);
+
+    // Migration guard: Ensure embedding column exists
+    try {
+      this.db.exec("ALTER TABLE docs ADD COLUMN embedding BLOB;");
+    } catch {}
   }
 
   public upsertDoc(doc: DocEntry, embedding?: Float32Array): void {
