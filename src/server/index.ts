@@ -151,6 +151,34 @@ export function createHttpServer(engine: Engine, port: number = 3030) {
         }
       }
 
+      // Live web meta-search (used by the native Hermes plugin)
+      if (url.pathname === "/api/web-search" && req.method === "POST") {
+        try {
+          const body = await req.json() as any;
+          const q = String(body.query || "").trim();
+          const limit = body.limit ? Number(body.limit) : 6;
+          if (!q) return Response.json({ success: false, error: "query required" }, { status: 400, headers });
+          const results = await engine.searx.search(q, limit);
+          return Response.json({ success: true, results }, { headers });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { headers });
+        }
+      }
+
+      // Web extract to clean markdown (used by the native Hermes plugin)
+      if (url.pathname === "/api/extract" && req.method === "POST") {
+        try {
+          const body = await req.json() as any;
+          const targetUrl = String(body.url || "").trim();
+          if (!targetUrl) return Response.json({ success: false, error: "url required" }, { status: 400, headers });
+          const { html, url: finalUrl } = await StealthFetcher.fetchWebPage(targetUrl);
+          const parsed = DocParser.parseHTML(html, finalUrl);
+          return Response.json({ success: true, url: finalUrl, title: parsed.title, markdown: parsed.markdown.slice(0, 50000) }, { headers });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { headers });
+        }
+      }
+
       // Background Async Ingestion with Multi-link, Per-job Advanced Limits & Re-index
       if (url.pathname === "/api/ingest" && req.method === "POST") {
         try {
