@@ -289,6 +289,14 @@ function getWebUiHtml(): string {
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      var root = document.getElementById("root");
+      if (root) {
+        root.innerHTML = '<div style="color:#ff6b6b;padding:30px;font-family:monospace;background:#1e1e1e;border:1px solid #ff6b6b;margin:20px;border-radius:8px;"><h3>UI Runtime Error</h3><p>' + msg + '</p><p>Line: ' + line + ':' + col + '</p><pre style="margin-top:10px;color:#aaa;">' + (error ? error.stack : '') + '</pre></div>';
+      }
+    };
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -335,7 +343,7 @@ function getWebUiHtml(): string {
 <body class="h-screen w-screen overflow-hidden bg-[#191919] text-[#D4D4D4] font-sans text-[13px]">
   <div id="root" class="h-full w-full flex"></div>
 
-  <script type="text/babel">
+  <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef } = React;
 
     const Icons = {
@@ -372,9 +380,9 @@ function getWebUiHtml(): string {
       return (
         <div 
           onClick={() => onChange(!checked)}
-          class="flex items-start gap-3 p-3 bg-[#1e1e1e] hover:bg-[#252525] rounded-lg border border-[#2e2e2e] transition cursor-pointer select-none group"
+          className="flex items-start gap-3 p-3 bg-[#1e1e1e] hover:bg-[#252525] rounded-lg border border-[#2e2e2e] transition cursor-pointer select-none group"
         >
-          <div class={"w-4 h-4 rounded mt-0.5 flex items-center justify-center transition flex-shrink-0 " + 
+          <div className={"w-4 h-4 rounded mt-0.5 flex items-center justify-center transition flex-shrink-0 " + 
             (checked ? "bg-[#529CCA] border border-[#529CCA]" : "bg-[#181818] border border-[#3e3e3e] group-hover:border-[#529CCA]")}
           >
             {checked && (
@@ -383,9 +391,9 @@ function getWebUiHtml(): string {
               </svg>
             )}
           </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs font-medium text-white">{label}</span>
-            {description && <span class="text-[11px] text-[#787774]">{description}</span>}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium text-white">{label}</span>
+            {description && <span className="text-[11px] text-[#787774]">{description}</span>}
           </div>
         </div>
       );
@@ -758,38 +766,38 @@ function getWebUiHtml(): string {
       const totalDocsCount = libraries.reduce((acc, l) => acc + l.docCount, 0);
 
       return (
-        <div class="flex h-full w-full bg-[#191919] text-[#D4D4D4] font-sans">
+        <div className="flex h-full w-full bg-[#191919] text-[#D4D4D4] font-sans">
           {/* Left Notion Sidebar */}
-          <aside class="w-60 bg-[#202020] border-r border-[#2a2a2a] flex flex-col justify-between select-none flex-shrink-0">
-            <div class="flex flex-col">
+          <aside className="w-60 bg-[#202020] border-r border-[#2a2a2a] flex flex-col justify-between select-none flex-shrink-0">
+            <div className="flex flex-col">
               <div 
                 onClick={() => setView("page")}
-                class="px-3.5 py-3 flex items-center justify-between hover:bg-[#282828] cursor-pointer m-1 rounded transition text-xs"
+                className="px-3.5 py-3 flex items-center justify-between hover:bg-[#282828] cursor-pointer m-1 rounded transition text-xs"
               >
-                <div class="flex items-center gap-2">
-                  <div class="w-5 h-5 rounded flex items-center justify-center bg-[#2e2e2e] text-[#D4D4D4]">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-[#2e2e2e] text-[#D4D4D4]">
                     <Icons.bolt className="w-3.5 h-3.5 text-brand-400" />
                   </div>
-                  <span class="font-semibold text-white tracking-tight">docsGround</span>
+                  <span className="font-semibold text-white tracking-tight">docsGround</span>
                 </div>
-                <span class="text-[10px] text-[#787774] font-mono border border-[#2e2e2e] px-1 py-0.2 rounded bg-[#191919]">v1.0</span>
+                <span className="text-[10px] text-[#787774] font-mono border border-[#2e2e2e] px-1 py-0.2 rounded bg-[#191919]">v1.0</span>
               </div>
 
-              <div class="px-2 py-1 flex flex-col gap-0.5 text-xs text-[#9B9B9B]">
+              <div className="px-2 py-1 flex flex-col gap-0.5 text-xs text-[#9B9B9B]">
                 <button
                   onClick={() => setSearchOpen(true)}
-                  class="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#282828] hover:text-white flex items-center justify-between transition group"
+                  className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#282828] hover:text-white flex items-center justify-between transition group"
                 >
-                  <div class="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5">
                     <Icons.search className="w-3.5 h-3.5 text-[#787774]" />
                     <span>Quick Find</span>
                   </div>
-                  <kbd class="text-[10px] font-mono text-[#787774] border border-[#2e2e2e] px-1 rounded bg-[#191919]">Ctrl+K</kbd>
+                  <kbd className="text-[10px] font-mono text-[#787774] border border-[#2e2e2e] px-1 rounded bg-[#191919]">Ctrl+K</kbd>
                 </button>
 
                 <button
                   onClick={() => setView("page")}
-                  class={"w-full text-left px-2.5 py-1.5 rounded flex items-center gap-2.5 transition " +
+                  className={"w-full text-left px-2.5 py-1.5 rounded flex items-center gap-2.5 transition " +
                     (view === "page" ? "bg-[#303030] text-white font-medium" : "hover:bg-[#282828] hover:text-white")}
                 >
                   <Icons.document className="w-3.5 h-3.5 text-[#787774]" />
@@ -798,7 +806,7 @@ function getWebUiHtml(): string {
 
                 <button
                   onClick={() => setView("settings")}
-                  class={"w-full text-left px-2.5 py-1.5 rounded flex items-center gap-2.5 transition " +
+                  className={"w-full text-left px-2.5 py-1.5 rounded flex items-center gap-2.5 transition " +
                     (view === "settings" ? "bg-[#303030] text-white font-medium" : "hover:bg-[#282828] hover:text-white")}
                 >
                   <Icons.settings className="w-3.5 h-3.5 text-[#787774]" />
@@ -807,39 +815,39 @@ function getWebUiHtml(): string {
               </div>
 
               {/* Indexed Libraries List with Actions */}
-              <div class="mt-4 px-3 flex flex-col gap-1">
-                <div class="flex items-center justify-between px-1 text-[11px] font-medium text-[#787774]">
+              <div className="mt-4 px-3 flex flex-col gap-1">
+                <div className="flex items-center justify-between px-1 text-[11px] font-medium text-[#787774]">
                   <span>LIBRARIES ({libraries.length})</span>
-                  <button onClick={() => setIngestOpen(true)} class="hover:text-white transition p-0.5">
+                  <button onClick={() => setIngestOpen(true)} className="hover:text-white transition p-0.5">
                     <Icons.plus className="w-3 h-3" />
                   </button>
                 </div>
 
-                <div class="flex flex-col gap-0.5 max-h-72 overflow-y-auto">
+                <div className="flex flex-col gap-0.5 max-h-72 overflow-y-auto">
                   {libraries.map((lib) => (
                     <div
                       key={lib.name}
                       onClick={() => openLibrary(lib.name)}
-                      class={"px-2.5 py-1.5 rounded text-xs cursor-pointer flex items-center justify-between transition group " +
+                      className={"px-2.5 py-1.5 rounded text-xs cursor-pointer flex items-center justify-between transition group " +
                         (view === "library" && currentLib === lib.name ? "bg-[#303030] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#282828] hover:text-white")}
                     >
-                      <span class="truncate flex items-center gap-2">
+                      <span className="truncate flex items-center gap-2">
                         <Icons.book className="w-3.5 h-3.5 text-[#787774]" />
                         {lib.name}
                       </span>
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-[11px] font-mono text-[#787774] group-hover:hidden">{lib.docCount}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-mono text-[#787774] group-hover:hidden">{lib.docCount}</span>
                         <button
                           onClick={(e) => openEditModal(lib, e)}
                           title="Edit & Re-index"
-                          class="hidden group-hover:inline-block p-0.5 text-[#787774] hover:text-white"
+                          className="hidden group-hover:inline-block p-0.5 text-[#787774] hover:text-white"
                         >
                           <Icons.edit className="w-3 h-3" />
                         </button>
                         <button
                           onClick={(e) => handleDeleteLibrary(lib.name, e)}
                           title="Delete"
-                          class="hidden group-hover:inline-block p-0.5 text-[#787774] hover:text-red-400"
+                          className="hidden group-hover:inline-block p-0.5 text-[#787774] hover:text-red-400"
                         >
                           <Icons.trash className="w-3 h-3" />
                         </button>
@@ -850,10 +858,10 @@ function getWebUiHtml(): string {
               </div>
             </div>
 
-            <div class="p-2 border-t border-[#2a2a2a] flex flex-col gap-1">
+            <div className="p-2 border-t border-[#2a2a2a] flex flex-col gap-1">
               <button
                 onClick={() => setIngestOpen(true)}
-                class="w-full text-left px-2.5 py-1.5 rounded text-xs text-[#9B9B9B] hover:bg-[#282828] hover:text-white transition flex items-center gap-2"
+                className="w-full text-left px-2.5 py-1.5 rounded text-xs text-[#9B9B9B] hover:bg-[#282828] hover:text-white transition flex items-center gap-2"
               >
                 <Icons.plus className="w-3.5 h-3.5 text-[#787774]" />
                 <span>Add Library</span>
@@ -863,68 +871,68 @@ function getWebUiHtml(): string {
 
           {/* View: Per-Library Workspace Reader */}
           {view === "library" && (
-            <div class="flex-1 flex h-full overflow-hidden">
-              <div class="w-64 bg-[#1b1b1b] border-r border-[#262626] flex flex-col flex-shrink-0">
-                <div class="p-3 border-b border-[#262626] flex items-center justify-between">
-                  <div class="flex items-center gap-2 overflow-hidden">
-                    <span class={"notion-tag font-mono " + getTagColorClass(currentLib)}>{currentLib}</span>
-                    <span class="text-xs text-[#787774]">{libraryDocs.length} files</span>
+            <div className="flex-1 flex h-full overflow-hidden">
+              <div className="w-64 bg-[#1b1b1b] border-r border-[#262626] flex flex-col flex-shrink-0">
+                <div className="p-3 border-b border-[#262626] flex items-center justify-between">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className={"notion-tag font-mono " + getTagColorClass(currentLib)}>{currentLib}</span>
+                    <span className="text-xs text-[#787774]">{libraryDocs.length} files</span>
                   </div>
-                  <div class="flex items-center gap-1">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => {
                         const libObj = libraries.find(l => l.name === currentLib) || { name: currentLib, sourceUrl: "" };
                         openEditModal(libObj);
                       }}
-                      class="text-xs text-[#787774] hover:text-white p-1"
+                      className="text-xs text-[#787774] hover:text-white p-1"
                       title="Edit & Re-index"
                     >
                       <Icons.edit className="w-3 h-3" />
                     </button>
                     <button
                       onClick={(e) => handleDeleteLibrary(currentLib, e)}
-                      class="text-xs text-[#787774] hover:text-red-400 p-1"
+                      className="text-xs text-[#787774] hover:text-red-400 p-1"
                       title="Delete"
                     >
                       <Icons.trash className="w-3 h-3" />
                     </button>
-                    <button onClick={() => setView("page")} class="text-xs text-[#787774] hover:text-white p-1">
+                    <button onClick={() => setView("page")} className="text-xs text-[#787774] hover:text-white p-1">
                       <Icons.close className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-1.5 flex flex-col gap-0.5">
+                <div className="flex-1 overflow-y-auto p-1.5 flex flex-col gap-0.5">
                   {libraryDocs.map((d) => (
                     <button
                       key={d.id}
                       onClick={() => loadDoc(d.id)}
-                      class={"w-full text-left px-2.5 py-1.5 rounded text-xs transition flex flex-col gap-0.5 " +
+                      className={"w-full text-left px-2.5 py-1.5 rounded text-xs transition flex flex-col gap-0.5 " +
                         (selectedDoc?.id === d.id ? "bg-[#2c2c2c] text-white font-medium shadow-sm" : "text-[#9B9B9B] hover:bg-[#232323] hover:text-white")}
                     >
-                      <span class="truncate">{d.title || d.path}</span>
-                      <span class="text-[10px] font-mono text-[#666666] truncate">{d.path}</span>
+                      <span className="truncate">{d.title || d.path}</span>
+                      <span className="text-[10px] font-mono text-[#666666] truncate">{d.path}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div class="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
+              <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
                 {selectedDoc ? (
-                  <div class="max-w-4xl w-full mx-auto px-12 py-10 flex flex-col gap-6">
-                    <div class="flex items-start justify-between pb-4 border-b border-[#262626]">
-                      <div class="flex flex-col gap-1.5">
-                        <div class="flex items-center gap-2">
-                          <span class={"notion-tag font-mono " + getTagColorClass(selectedDoc.library)}>{selectedDoc.library}</span>
-                          <span class="text-xs font-mono text-[#787774]">{selectedDoc.version}</span>
+                  <div className="max-w-4xl w-full mx-auto px-12 py-10 flex flex-col gap-6">
+                    <div className="flex items-start justify-between pb-4 border-b border-[#262626]">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={"notion-tag font-mono " + getTagColorClass(selectedDoc.library)}>{selectedDoc.library}</span>
+                          <span className="text-xs font-mono text-[#787774]">{selectedDoc.version}</span>
                         </div>
-                        <h1 class="text-2xl font-bold text-white tracking-tight">{selectedDoc.title}</h1>
-                        <a href={selectedDoc.url || "#"} target="_blank" rel="noreferrer" class="text-xs font-mono text-[#787774] hover:text-[#529CCA] flex items-center gap-1.5">
+                        <h1 className="text-2xl font-bold text-white tracking-tight">{selectedDoc.title}</h1>
+                        <a href={selectedDoc.url || "#"} target="_blank" rel="noreferrer" className="text-xs font-mono text-[#787774] hover:text-[#529CCA] flex items-center gap-1.5">
                           <Icons.external className="w-3 h-3" /> {selectedDoc.path}
                         </a>
                       </div>
                       <button
                         onClick={handleCopyDoc}
-                        class="px-3 py-1.5 rounded bg-[#242424] hover:bg-[#2e2e2e] border border-[#2a2a2a] text-xs text-white transition flex items-center gap-1.5 shadow-sm"
+                        className="px-3 py-1.5 rounded bg-[#242424] hover:bg-[#2e2e2e] border border-[#2a2a2a] text-xs text-white transition flex items-center gap-1.5 shadow-sm"
                       >
                         {copied ? <Icons.check className="w-3 h-3 text-emerald-400" /> : <Icons.copy className="w-3 h-3 text-[#787774]" />}
                         {copied ? "Copied" : "Copy Raw"}
@@ -932,22 +940,22 @@ function getWebUiHtml(): string {
                     </div>
 
                     {selectedDoc.symbols && selectedDoc.symbols.length > 0 && (
-                      <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-[11px] font-mono text-[#787774] uppercase">Symbols:</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] font-mono text-[#787774] uppercase">Symbols:</span>
                         {selectedDoc.symbols.slice(0, 10).map((sym) => (
-                          <span key={sym} class="text-[11px] font-mono px-2 py-0.5 rounded bg-[#222222] text-[#D4D4D4] border border-[#2a2a2a]">
+                          <span key={sym} className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#222222] text-[#D4D4D4] border border-[#2a2a2a]">
                             {sym}
                           </span>
                         ))}
                       </div>
                     )}
 
-                    <div class="pb-16">
+                    <div className="pb-16">
                       <MarkdownRenderer content={selectedDoc.content} />
                     </div>
                   </div>
                 ) : (
-                  <div class="flex-1 flex items-center justify-center text-xs text-[#787774]">
+                  <div className="flex-1 flex items-center justify-center text-xs text-[#787774]">
                     Select a document from the left sidebar to view.
                   </div>
                 )}
@@ -957,133 +965,133 @@ function getWebUiHtml(): string {
 
           {/* View: Overview Page */}
           {view === "page" && (
-            <main class="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
-              <header class="h-11 px-8 border-b border-[#252525] flex items-center justify-between text-xs text-[#787774] sticky top-0 bg-[#191919]/90 backdrop-blur z-20">
-                <div class="flex items-center gap-2">
+            <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#191919]">
+              <header className="h-11 px-8 border-b border-[#252525] flex items-center justify-between text-xs text-[#787774] sticky top-0 bg-[#191919]/90 backdrop-blur z-20">
+                <div className="flex items-center gap-2">
                   <span>docsGround</span>
                   <span>/</span>
-                  <span class="text-[#D4D4D4]">Overview</span>
+                  <span className="text-[#D4D4D4]">Overview</span>
                 </div>
-                <span class="text-[11px] font-mono text-[#787774] flex items-center gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span className="text-[11px] font-mono text-[#787774] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   Port :3030
                 </span>
               </header>
 
-              <div class="max-w-4xl w-full mx-auto px-12 py-10 flex flex-col gap-8">
-                <div class="flex flex-col gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-[#242424] border border-[#2e2e2e] flex items-center justify-center text-white">
+              <div className="max-w-4xl w-full mx-auto px-12 py-10 flex flex-col gap-8">
+                <div className="flex flex-col gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#242424] border border-[#2e2e2e] flex items-center justify-center text-white">
                     <Icons.bolt className="w-5 h-5 text-emerald-400" />
                   </div>
-                  <h1 class="text-3xl font-bold text-white tracking-tight">docsGround</h1>
-                  <p class="text-xs text-[#9B9B9B]">Real-time grounding and symbol documentation index for AI coding agents.</p>
+                  <h1 className="text-3xl font-bold text-white tracking-tight">docsGround</h1>
+                  <p className="text-xs text-[#9B9B9B]">Real-time grounding and symbol documentation index for AI coding agents.</p>
                 </div>
 
                 {/* Floating Active Jobs Progress Banner */}
                 {activeJobs.length > 0 && (
-                  <div class="flex flex-col gap-2 bg-[#202020] border border-[#2a2a2a] p-4 rounded-xl shadow-lg">
-                    <div class="text-xs font-semibold text-white flex items-center gap-2">
-                      <i class="fa-solid fa-spinner fa-spin text-[#529CCA]"></i>
+                  <div className="flex flex-col gap-2 bg-[#202020] border border-[#2a2a2a] p-4 rounded-xl shadow-lg">
+                    <div className="text-xs font-semibold text-white flex items-center gap-2">
+                      <i className="fa-solid fa-spinner fa-spin text-[#529CCA]"></i>
                       <span>Background Indexing in Progress ({activeJobs.length} jobs)</span>
                     </div>
                     {activeJobs.map(job => (
-                      <div key={job.id} class="flex flex-col gap-1 bg-[#191919] p-3 rounded-lg border border-[#262626]">
-                        <div class="flex items-center justify-between text-xs">
-                          <span class="font-mono text-white font-medium">{job.library}</span>
-                          <span class="font-mono text-[#529CCA]">{job.progress}% ({job.processedFiles}/{job.totalFiles || '?'})</span>
+                      <div key={job.id} className="flex flex-col gap-1 bg-[#191919] p-3 rounded-lg border border-[#262626]">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-white font-medium">{job.library}</span>
+                          <span className="font-mono text-[#529CCA]">{job.progress}% ({job.processedFiles}/{job.totalFiles || '?'})</span>
                         </div>
-                        <div class="w-full bg-[#262626] h-1.5 rounded-full overflow-hidden mt-1">
-                          <div class="bg-[#529CCA] h-full transition-all duration-300 rounded-full" style={{ width: job.progress + '%' }}></div>
+                        <div className="w-full bg-[#262626] h-1.5 rounded-full overflow-hidden mt-1">
+                          <div className="bg-[#529CCA] h-full transition-all duration-300 rounded-full" style={{ width: job.progress + '%' }}></div>
                         </div>
                         {job.currentFile && (
-                          <span class="text-[10px] font-mono text-[#787774] truncate mt-0.5">{job.currentFile}</span>
+                          <span className="text-[10px] font-mono text-[#787774] truncate mt-0.5">{job.currentFile}</span>
                         )}
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div class="border-y border-[#2a2a2a] py-3 flex flex-col gap-2 text-xs">
-                  <div class="flex items-center">
-                    <span class="w-32 text-[#787774] flex items-center gap-2"><Icons.check className="w-3.5 h-3.5" /> Status</span>
-                    <span class="notion-tag-green font-mono px-2 py-0.5 rounded text-[11px]">Active</span>
+                <div className="border-y border-[#2a2a2a] py-3 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center">
+                    <span className="w-32 text-[#787774] flex items-center gap-2"><Icons.check className="w-3.5 h-3.5" /> Status</span>
+                    <span className="notion-tag-green font-mono px-2 py-0.5 rounded text-[11px]">Active</span>
                   </div>
-                  <div class="flex items-center">
-                    <span class="w-32 text-[#787774] flex items-center gap-2"><Icons.database className="w-3.5 h-3.5" /> Total Pages</span>
-                    <span class="text-white font-mono">{totalDocsCount} indexed documents</span>
+                  <div className="flex items-center">
+                    <span className="w-32 text-[#787774] flex items-center gap-2"><Icons.database className="w-3.5 h-3.5" /> Total Pages</span>
+                    <span className="text-white font-mono">{totalDocsCount} indexed documents</span>
                   </div>
-                  <div class="flex items-center">
-                    <span class="w-32 text-[#787774] flex items-center gap-2"><Icons.cpu className="w-3.5 h-3.5" /> Embedding</span>
-                    <span class="notion-tag-blue font-mono px-2 py-0.5 rounded text-[11px]">
+                  <div className="flex items-center">
+                    <span className="w-32 text-[#787774] flex items-center gap-2"><Icons.cpu className="w-3.5 h-3.5" /> Embedding</span>
+                    <span className="notion-tag-blue font-mono px-2 py-0.5 rounded text-[11px]">
                       {config.embedding?.provider === "openai" ? "Gateway (" + config.embedding.model + ")" : "Local ONNX (BGE-Small)"}
                     </span>
                   </div>
-                  <div class="flex items-center">
-                    <span class="w-32 text-[#787774] flex items-center gap-2"><Icons.globe className="w-3.5 h-3.5" /> Search Engine</span>
-                    <span class="notion-tag-purple font-mono px-2 py-0.5 rounded text-[11px]">Built-in Multi-Engine Meta Search</span>
+                  <div className="flex items-center">
+                    <span className="w-32 text-[#787774] flex items-center gap-2"><Icons.globe className="w-3.5 h-3.5" /> Search Engine</span>
+                    <span className="notion-tag-purple font-mono px-2 py-0.5 rounded text-[11px]">Built-in Multi-Engine Meta Search</span>
                   </div>
                 </div>
 
-                <div class="bg-[#222222] border border-[#2a2a2a] p-4 rounded-lg flex items-start gap-3 text-xs">
+                <div className="bg-[#222222] border border-[#2a2a2a] p-4 rounded-lg flex items-start gap-3 text-xs">
                   <Icons.info className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                  <div class="flex flex-col gap-1 text-[#D4D4D4]">
-                    <span class="font-semibold text-white">Universal Grounding Pipeline</span>
-                    <span class="text-[#9B9B9B] leading-relaxed">
-                      Press <kbd class="px-1.5 py-0.5 bg-[#191919] border border-[#2e2e2e] rounded text-[#D4D4D4] font-mono">Ctrl+K</kbd> to search. Searches local vectors + FTS5, and automatically queries the live web for broader questions.
+                  <div className="flex flex-col gap-1 text-[#D4D4D4]">
+                    <span className="font-semibold text-white">Universal Grounding Pipeline</span>
+                    <span className="text-[#9B9B9B] leading-relaxed">
+                      Press <kbd className="px-1.5 py-0.5 bg-[#191919] border border-[#2e2e2e] rounded text-[#D4D4D4] font-mono">Ctrl+K</kbd> to search. Searches local vectors + FTS5, and automatically queries the live web for broader questions.
                     </span>
                   </div>
                 </div>
 
                 {/* Notion Database Table View with Manage Actions */}
-                <div class="flex flex-col gap-3">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-semibold uppercase tracking-wider text-[#787774]">DOCS DATABASE</span>
-                      <span class="text-xs font-mono text-[#787774]">({libraries.length} collections)</span>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-[#787774]">DOCS DATABASE</span>
+                      <span className="text-xs font-mono text-[#787774]">({libraries.length} collections)</span>
                     </div>
                     <button
                       onClick={() => setIngestOpen(true)}
-                      class="text-xs px-2.5 py-1 rounded bg-[#282828] hover:bg-[#303030] text-white transition flex items-center gap-1.5"
+                      className="text-xs px-2.5 py-1 rounded bg-[#282828] hover:bg-[#303030] text-white transition flex items-center gap-1.5"
                     >
                       <Icons.plus className="w-3 h-3" /> Ingest New
                     </button>
                   </div>
 
-                  <div class="border border-[#2a2a2a] rounded-lg overflow-hidden divide-y divide-[#2a2a2a] bg-[#202020]">
-                    <div class="grid grid-cols-12 px-4 py-2 text-[11px] font-medium text-[#787774] uppercase bg-[#242424]">
-                      <div class="col-span-6 flex items-center gap-1.5"><Icons.book className="w-3 h-3" /> Library</div>
-                      <div class="col-span-3 flex items-center gap-1.5"><Icons.document className="w-3 h-3" /> Docs Count</div>
-                      <div class="col-span-3 text-right">Actions</div>
+                  <div className="border border-[#2a2a2a] rounded-lg overflow-hidden divide-y divide-[#2a2a2a] bg-[#202020]">
+                    <div className="grid grid-cols-12 px-4 py-2 text-[11px] font-medium text-[#787774] uppercase bg-[#242424]">
+                      <div className="col-span-6 flex items-center gap-1.5"><Icons.book className="w-3 h-3" /> Library</div>
+                      <div className="col-span-3 flex items-center gap-1.5"><Icons.document className="w-3 h-3" /> Docs Count</div>
+                      <div className="col-span-3 text-right">Actions</div>
                     </div>
 
                     {libraries.map((lib) => (
-                      <div key={lib.name} class="grid grid-cols-12 px-4 py-3 text-xs hover:bg-[#282828] items-center transition">
-                        <div class="col-span-6 flex items-center gap-2.5 cursor-pointer" onClick={() => openLibrary(lib.name)}>
+                      <div key={lib.name} className="grid grid-cols-12 px-4 py-3 text-xs hover:bg-[#282828] items-center transition">
+                        <div className="col-span-6 flex items-center gap-2.5 cursor-pointer" onClick={() => openLibrary(lib.name)}>
                           <Icons.book className="w-3.5 h-3.5 text-[#787774]" />
-                          <span class={"notion-tag font-mono " + getTagColorClass(lib.name)}>{lib.name}</span>
-                          <span class="text-[11px] font-mono text-[#787774]">{lib.latestVersion}</span>
+                          <span className={"notion-tag font-mono " + getTagColorClass(lib.name)}>{lib.name}</span>
+                          <span className="text-[11px] font-mono text-[#787774]">{lib.latestVersion}</span>
                         </div>
-                        <div class="col-span-3 text-xs font-mono text-[#D4D4D4]">
+                        <div className="col-span-3 text-xs font-mono text-[#D4D4D4]">
                           {lib.docCount} pages
                         </div>
-                        <div class="col-span-3 text-right flex items-center justify-end gap-2">
+                        <div className="col-span-3 text-right flex items-center justify-end gap-2">
                           <button
                             onClick={() => openLibrary(lib.name)}
-                            class="px-2.5 py-1 rounded bg-[#2a2a2a] hover:bg-[#333333] text-xs text-white transition inline-flex items-center gap-1"
+                            className="px-2.5 py-1 rounded bg-[#2a2a2a] hover:bg-[#333333] text-xs text-white transition inline-flex items-center gap-1"
                           >
                             Open Reader <Icons.external className="w-2.5 h-2.5" />
                           </button>
                           <button
                             onClick={(e) => openEditModal(lib, e)}
                             title="Edit & Re-index"
-                            class="p-1 rounded bg-[#2a2a2a] hover:bg-[#333333] text-[#9B9B9B] hover:text-white"
+                            className="p-1 rounded bg-[#2a2a2a] hover:bg-[#333333] text-[#9B9B9B] hover:text-white"
                           >
                             <Icons.edit className="w-3 h-3" />
                           </button>
                           <button
                             onClick={(e) => handleDeleteLibrary(lib.name, e)}
                             title="Delete"
-                            class="p-1 rounded bg-[#2a2a2a] hover:bg-[#333333] text-[#9B9B9B] hover:text-red-400"
+                            className="p-1 rounded bg-[#2a2a2a] hover:bg-[#333333] text-[#9B9B9B] hover:text-red-400"
                           >
                             <Icons.trash className="w-3 h-3" />
                           </button>
@@ -1098,69 +1106,69 @@ function getWebUiHtml(): string {
 
           {/* View: Settings (Structured Tabbed System) */}
           {view === "settings" && (
-            <main class="flex-1 flex flex-col h-full bg-[#191919] overflow-hidden">
-              <header class="h-11 px-8 border-b border-[#252525] flex items-center justify-between text-xs text-[#787774] sticky top-0 bg-[#191919]/90 backdrop-blur z-20">
-                <div class="flex items-center gap-2">
+            <main className="flex-1 flex flex-col h-full bg-[#191919] overflow-hidden">
+              <header className="h-11 px-8 border-b border-[#252525] flex items-center justify-between text-xs text-[#787774] sticky top-0 bg-[#191919]/90 backdrop-blur z-20">
+                <div className="flex items-center gap-2">
                   <span>docsGround</span>
                   <span>/</span>
-                  <span class="text-[#D4D4D4]">Settings</span>
+                  <span className="text-[#D4D4D4]">Settings</span>
                 </div>
               </header>
 
-              <div class="flex-1 max-w-5xl w-full mx-auto px-12 py-8 flex gap-8 overflow-y-auto">
-                <div class="w-48 flex flex-col gap-1 flex-shrink-0 text-xs">
-                  <span class="text-[11px] font-semibold text-[#787774] uppercase px-2 mb-1">Configuration</span>
+              <div className="flex-1 max-w-5xl w-full mx-auto px-12 py-8 flex gap-8 overflow-y-auto">
+                <div className="w-48 flex flex-col gap-1 flex-shrink-0 text-xs">
+                  <span className="text-[11px] font-semibold text-[#787774] uppercase px-2 mb-1">Configuration</span>
                   <button
                     onClick={() => setSettingsTab("general")}
-                    class={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "general" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
+                    className={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "general" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
                   >
                     General & Server
                   </button>
                   <button
                     onClick={() => setSettingsTab("crawler")}
-                    class={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "crawler" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
+                    className={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "crawler" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
                   >
                     Crawler & Indexing
                   </button>
                   <button
                     onClick={() => setSettingsTab("embedding")}
-                    class={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "embedding" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
+                    className={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "embedding" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
                   >
                     Embedding Provider
                   </button>
                   <button
                     onClick={() => setSettingsTab("search")}
-                    class={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "search" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
+                    className={"text-left px-2.5 py-1.5 rounded transition " + (settingsTab === "search" ? "bg-[#2c2c2c] text-white font-medium" : "text-[#9B9B9B] hover:bg-[#222222] hover:text-white")}
                   >
                     Search Engine
                   </button>
                 </div>
 
-                <div class="flex-1 bg-[#202020] border border-[#2a2a2a] rounded-lg p-6 flex flex-col justify-between text-xs">
-                  <form onSubmit={handleSaveConfig} class="flex flex-col gap-6">
+                <div className="flex-1 bg-[#202020] border border-[#2a2a2a] rounded-lg p-6 flex flex-col justify-between text-xs">
+                  <form onSubmit={handleSaveConfig} className="flex flex-col gap-6">
                     {settingsTab === "general" && (
-                      <div class="flex flex-col gap-4">
-                        <div class="border-b border-[#2a2a2a] pb-3">
-                          <h2 class="text-sm font-semibold text-white">General & Server Settings</h2>
-                          <p class="text-xs text-[#787774] mt-0.5">Control the HTTP & MCP daemon network bindings.</p>
+                      <div className="flex flex-col gap-4">
+                        <div className="border-b border-[#2a2a2a] pb-3">
+                          <h2 className="text-sm font-semibold text-white">General & Server Settings</h2>
+                          <p className="text-xs text-[#787774] mt-0.5">Control the HTTP & MCP daemon network bindings.</p>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label class="text-[#9B9B9B] block mb-1">Server Host</label>
+                            <label className="text-[#9B9B9B] block mb-1">Server Host</label>
                             <input
                               type="text"
                               value={config.server?.host || "0.0.0.0"}
                               onChange={(e) => setConfig({ ...config, server: { ...config.server, host: e.target.value } })}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                           <div>
-                            <label class="text-[#9B9B9B] block mb-1">Server Port</label>
+                            <label className="text-[#9B9B9B] block mb-1">Server Port</label>
                             <input
                               type="number"
                               value={config.server?.port || 3030}
                               onChange={(e) => setConfig({ ...config, server: { ...config.server, port: Number(e.target.value) } })}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                         </div>
@@ -1168,28 +1176,28 @@ function getWebUiHtml(): string {
                     )}
 
                     {settingsTab === "crawler" && (
-                      <div class="flex flex-col gap-4">
-                        <div class="border-b border-[#2a2a2a] pb-3">
-                          <h2 class="text-sm font-semibold text-white">Crawler & Indexing Defaults</h2>
-                          <p class="text-xs text-[#787774] mt-0.5">Set the default maximum pages and recursive depth for documentation crawls.</p>
+                      <div className="flex flex-col gap-4">
+                        <div className="border-b border-[#2a2a2a] pb-3">
+                          <h2 className="text-sm font-semibold text-white">Crawler & Indexing Defaults</h2>
+                          <p className="text-xs text-[#787774] mt-0.5">Set the default maximum pages and recursive depth for documentation crawls.</p>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label class="text-[#9B9B9B] block mb-1">Default Max Crawled Pages</label>
+                            <label className="text-[#9B9B9B] block mb-1">Default Max Crawled Pages</label>
                             <input
                               type="number"
                               value={config.crawler?.maxPages || 500}
                               onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxPages: Number(e.target.value) } })}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                           <div>
-                            <label class="text-[#9B9B9B] block mb-1">Default Max Crawl Depth</label>
+                            <label className="text-[#9B9B9B] block mb-1">Default Max Crawl Depth</label>
                             <input
                               type="number"
                               value={config.crawler?.maxDepth || 4}
                               onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxDepth: Number(e.target.value) } })}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                         </div>
@@ -1197,90 +1205,90 @@ function getWebUiHtml(): string {
                     )}
 
                     {settingsTab === "embedding" && (
-                      <div class="flex flex-col gap-4">
-                        <div class="border-b border-[#2a2a2a] pb-3">
-                          <h2 class="text-sm font-semibold text-white">Embedding Provider & Vectorizer</h2>
-                          <p class="text-xs text-[#787774] mt-0.5">Configure semantic embedding engine for dense vector search.</p>
+                      <div className="flex flex-col gap-4">
+                        <div className="border-b border-[#2a2a2a] pb-3">
+                          <h2 className="text-sm font-semibold text-white">Embedding Provider & Vectorizer</h2>
+                          <p className="text-xs text-[#787774] mt-0.5">Configure semantic embedding engine for dense vector search.</p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label class="text-[#9B9B9B] block mb-1">Provider Type</label>
+                            <label className="text-[#9B9B9B] block mb-1">Provider Type</label>
                             <select
                               value={config.embedding?.provider || "local"}
                               onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, provider: e.target.value } })}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             >
                               <option value="local">Local ONNX (BGE-Small Quantized - Built-in)</option>
                               <option value="openai">OpenAI-Compatible Gateway</option>
                             </select>
                           </div>
                           <div>
-                            <label class="text-[#9B9B9B] block mb-1">Active Model Name</label>
+                            <label className="text-[#9B9B9B] block mb-1">Active Model Name</label>
                             <input
                               type="text"
                               value={config.embedding?.model || "Xenova/bge-small-en-v1.5"}
                               onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, model: e.target.value } })}
                               placeholder="e.g. text-embedding-3-small"
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                         </div>
 
                         {config.embedding?.provider === "openai" && (
-                          <div class="flex flex-col gap-4 pt-2 border-t border-[#2a2a2a]">
-                            <div class="grid grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-4 pt-2 border-t border-[#2a2a2a]">
+                            <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label class="text-[#9B9B9B] block mb-1">Gateway Base URL</label>
+                                <label className="text-[#9B9B9B] block mb-1">Gateway Base URL</label>
                                 <input
                                   type="text"
                                   value={config.embedding?.baseUrl || ""}
                                   onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, baseUrl: e.target.value } })}
                                   placeholder="http://127.0.0.1:20128/v1"
-                                  class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                                  className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                                 />
                               </div>
                               <div>
-                                <label class="text-[#9B9B9B] block mb-1">API Key</label>
+                                <label className="text-[#9B9B9B] block mb-1">API Key</label>
                                 <input
                                   type="password"
                                   value={config.embedding?.apiKey || ""}
                                   onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, apiKey: e.target.value } })}
                                   placeholder="Optional"
-                                  class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                                  className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                                 />
                               </div>
                             </div>
 
-                            <div class="bg-[#191919] border border-[#2a2a2a] p-3.5 rounded-lg flex flex-col gap-3">
-                              <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
+                            <div className="bg-[#191919] border border-[#2a2a2a] p-3.5 rounded-lg flex flex-col gap-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
                                   <Icons.cpu className="w-3.5 h-3.5 text-[#529CCA]" />
-                                  <span class="font-medium text-white text-[12px]">Fetch Available Embedding Models</span>
+                                  <span className="font-medium text-white text-[12px]">Fetch Available Embedding Models</span>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={handleFetchModels}
                                   disabled={fetchingModels}
-                                  class="px-3 py-1 rounded bg-[#282828] hover:bg-[#333333] text-white text-xs transition flex items-center gap-1.5"
+                                  className="px-3 py-1 rounded bg-[#282828] hover:bg-[#333333] text-white text-xs transition flex items-center gap-1.5"
                                 >
-                                  {fetchingModels ? <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> : <Icons.refresh className="w-3 h-3" />}
+                                  {fetchingModels ? <i className="fa-solid fa-spinner fa-spin text-[10px]"></i> : <Icons.refresh className="w-3 h-3" />}
                                   {fetchingModels ? "Fetching..." : "Fetch Models"}
                                 </button>
                               </div>
 
-                              {fetchError && <div class="text-[11px] font-mono text-red-400">{fetchError}</div>}
+                              {fetchError && <div className="text-[11px] font-mono text-red-400">{fetchError}</div>}
 
                               {fetchedModels.length > 0 && (
-                                <div class="flex flex-col gap-1.5">
-                                  <label class="text-[11px] text-[#787774]">Select embedding model ({fetchedModels.length}):</label>
-                                  <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[11px] text-[#787774]">Select embedding model ({fetchedModels.length}):</label>
+                                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
                                     {fetchedModels.map((m) => (
                                       <button
                                         key={m}
                                         type="button"
                                         onClick={() => setConfig({ ...config, embedding: { ...config.embedding, model: m } })}
-                                        class={"px-2 py-0.5 rounded text-[11px] font-mono transition border " +
+                                        className={"px-2 py-0.5 rounded text-[11px] font-mono transition border " +
                                           (config.embedding?.model === m 
                                             ? "bg-[#529CCA]/20 text-[#529CCA] border-[#529CCA]/40 font-semibold" 
                                             : "bg-[#222222] text-[#9B9B9B] border-[#2e2e2e] hover:text-white hover:border-[#444444]")}
@@ -1298,31 +1306,31 @@ function getWebUiHtml(): string {
                     )}
 
                     {settingsTab === "search" && (
-                      <div class="flex flex-col gap-4">
-                        <div class="border-b border-[#2a2a2a] pb-3">
-                          <h2 class="text-sm font-semibold text-white">Live Search Engine Configuration</h2>
-                          <p class="text-xs text-[#787774] mt-0.5">Control web meta-search endpoints for live retrieval.</p>
+                      <div className="flex flex-col gap-4">
+                        <div className="border-b border-[#2a2a2a] pb-3">
+                          <h2 className="text-sm font-semibold text-white">Live Search Engine Configuration</h2>
+                          <p className="text-xs text-[#787774] mt-0.5">Control web meta-search endpoints for live retrieval.</p>
                         </div>
                         <div>
-                          <label class="text-[#9B9B9B] block mb-1">Custom SearxNG URL (Optional)</label>
+                          <label className="text-[#9B9B9B] block mb-1">Custom SearxNG URL (Optional)</label>
                           <input
                             type="text"
                             value={config.search?.searxngUrl || ""}
                             onChange={(e) => setConfig({ ...config, search: { ...config.search, searxngUrl: e.target.value } })}
                             placeholder="Leave empty to use built-in multi-engine search"
-                            class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                            className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                           />
-                          <span class="text-[11px] text-[#787774] mt-1 block">Default: Built-in DuckDuckGo + Brave Meta-Search (Zero external setup).</span>
+                          <span className="text-[11px] text-[#787774] mt-1 block">Default: Built-in DuckDuckGo + Brave Meta-Search (Zero external setup).</span>
                         </div>
                       </div>
                     )}
 
-                    <div class="pt-4 border-t border-[#2a2a2a] flex items-center justify-between">
-                      <span class="text-xs font-mono text-emerald-400">{configMsg}</span>
+                    <div className="pt-4 border-t border-[#2a2a2a] flex items-center justify-between">
+                      <span className="text-xs font-mono text-emerald-400">{configMsg}</span>
                       <button
                         type="submit"
                         disabled={savingConfig}
-                        class="px-4 py-2 rounded bg-[#282828] hover:bg-[#303030] text-white text-xs font-medium transition"
+                        className="px-4 py-2 rounded bg-[#282828] hover:bg-[#303030] text-white text-xs font-medium transition"
                       >
                         {savingConfig ? "Saving..." : "Save Settings"}
                       </button>
@@ -1335,9 +1343,9 @@ function getWebUiHtml(): string {
 
           {/* Quick Find (Notion Ctrl+K Search Modal) */}
           {searchOpen && (
-            <div class="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-24" onClick={() => setSearchOpen(false)}>
-              <div class="w-full max-w-2xl bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <form onSubmit={handleSearch} class="p-3 border-b border-[#2a2a2a] flex items-center gap-2.5">
+            <div className="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-24" onClick={() => setSearchOpen(false)}>
+              <div className="w-full max-w-2xl bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <form onSubmit={handleSearch} className="p-3 border-b border-[#2a2a2a] flex items-center gap-2.5">
                   <Icons.search className="w-4 h-4 text-[#787774] ml-1" />
                   <input
                     ref={searchInputRef}
@@ -1345,15 +1353,15 @@ function getWebUiHtml(): string {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search docs, meaning, or ask question (e.g. 'what is faster rust or bun')..."
-                    class="flex-1 bg-transparent text-sm text-white placeholder-[#787774] focus:outline-none"
+                    className="flex-1 bg-transparent text-sm text-white placeholder-[#787774] focus:outline-none"
                   />
-                  {loading && <i class="fa-solid fa-spinner fa-spin text-xs text-[#787774] mr-2"></i>}
-                  <kbd class="text-[10px] font-mono text-[#787774] border border-[#2a2a2a] px-1 rounded bg-[#191919]">ESC</kbd>
+                  {loading && <i className="fa-solid fa-spinner fa-spin text-xs text-[#787774] mr-2"></i>}
+                  <kbd className="text-[10px] font-mono text-[#787774] border border-[#2a2a2a] px-1 rounded bg-[#191919]">ESC</kbd>
                 </form>
 
-                <div class="max-h-96 overflow-y-auto p-2 flex flex-col gap-1">
+                <div className="max-h-96 overflow-y-auto p-2 flex flex-col gap-1">
                   {results.length === 0 && !loading && (
-                    <div class="p-8 text-center text-xs text-[#787774]">
+                    <div className="p-8 text-center text-xs text-[#787774]">
                       Type a search query and press Enter.
                     </div>
                   )}
@@ -1362,16 +1370,16 @@ function getWebUiHtml(): string {
                     <div
                       key={r.id}
                       onClick={() => handleSelectSearchResult(r.id, r.library, r.library === "live-web", r.url)}
-                      class="p-2.5 rounded-lg hover:bg-[#282828] cursor-pointer flex flex-col gap-1 transition"
+                      className="p-2.5 rounded-lg hover:bg-[#282828] cursor-pointer flex flex-col gap-1 transition"
                     >
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2 overflow-hidden">
-                          <span class={"notion-tag font-mono " + getTagColorClass(r.library)}>{r.library}</span>
-                          <span class="text-xs font-medium text-white truncate">{r.title}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span className={"notion-tag font-mono " + getTagColorClass(r.library)}>{r.library}</span>
+                          <span className="text-xs font-medium text-white truncate">{r.title}</span>
                         </div>
-                        {latency && <span class="text-[10px] font-mono text-[#787774]">{source?.toUpperCase()}</span>}
+                        {latency && <span className="text-[10px] font-mono text-[#787774]">{source?.toUpperCase()}</span>}
                       </div>
-                      <p class="text-xs text-[#9B9B9B] line-clamp-2" dangerouslySetInnerHTML={{ __html: r.snippet }} />
+                      <p className="text-xs text-[#9B9B9B] line-clamp-2" dangerouslySetInnerHTML={{ __html: r.snippet }} />
                     </div>
                   ))}
                 </div>
@@ -1381,55 +1389,55 @@ function getWebUiHtml(): string {
 
           {/* Edit Library Modal (Rename + Edit URLs + Multi-Link Reindex) */}
           {editOpen && (
-            <div class="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-20" onClick={() => setEditOpen(false)}>
-              <div class="w-full max-w-lg bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
-                <div class="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
-                  <span class="font-semibold text-white text-sm">Edit Library & Re-index</span>
-                  <button onClick={() => setEditOpen(false)} class="text-[#787774] hover:text-white">
+            <div className="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-20" onClick={() => setEditOpen(false)}>
+              <div className="w-full max-w-lg bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
+                  <span className="font-semibold text-white text-sm">Edit Library & Re-index</span>
+                  <button onClick={() => setEditOpen(false)} className="text-[#787774] hover:text-white">
                     <Icons.close className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleEditSubmit} class="flex flex-col gap-4">
+                <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
                   <div>
-                    <label class="text-[#9B9B9B] block mb-1">Library Name</label>
+                    <label className="text-[#9B9B9B] block mb-1">Library Name</label>
                     <input
                       type="text"
                       value={editNewName}
                       onChange={(e) => setEditNewName(e.target.value)}
-                      class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono"
+                      className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono"
                     />
                   </div>
 
                   <div>
-                    <label class="text-[#9B9B9B] block mb-1">Source Documentation URLs (one per line)</label>
+                    <label className="text-[#9B9B9B] block mb-1">Source Documentation URLs (one per line)</label>
                     <textarea
                       rows={4}
                       value={editUrlsText}
                       onChange={(e) => setEditUrlsText(e.target.value)}
                       placeholder="https://docs.rs/tauri/latest/tauri/&#10;https://github.com/tauri-apps/tauri"
-                      class="w-full bg-[#191919] border border-[#2a2a2a] rounded p-2.5 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono resize-none"
+                      className="w-full bg-[#191919] border border-[#2a2a2a] rounded p-2.5 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono resize-none"
                     />
-                    <span class="text-[11px] text-[#787774] mt-1 block">Supports multiple links to crawl and aggregate into the same library.</span>
+                    <span className="text-[11px] text-[#787774] mt-1 block">Supports multiple links to crawl and aggregate into the same library.</span>
                   </div>
 
-                  <div class="grid grid-cols-2 gap-3 pt-2 border-t border-[#2a2a2a]">
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#2a2a2a]">
                     <div>
-                      <label class="text-[#9B9B9B] block mb-1">Max Pages</label>
+                      <label className="text-[#9B9B9B] block mb-1">Max Pages</label>
                       <input
                         type="number"
                         value={editMaxPages}
                         onChange={(e) => setEditMaxPages(Number(e.target.value))}
-                        class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                        className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                       />
                     </div>
                     <div>
-                      <label class="text-[#9B9B9B] block mb-1">Max Depth</label>
+                      <label className="text-[#9B9B9B] block mb-1">Max Depth</label>
                       <input
                         type="number"
                         value={editMaxDepth}
                         onChange={(e) => setEditMaxDepth(Number(e.target.value))}
-                        class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                        className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                       />
                     </div>
                   </div>
@@ -1442,20 +1450,20 @@ function getWebUiHtml(): string {
                     description="Wipe older documents before re-indexing this library"
                   />
 
-                  <div class="flex justify-end gap-2 pt-2 border-t border-[#2a2a2a]">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-[#2a2a2a]">
                     <button
                       type="button"
                       onClick={() => setEditOpen(false)}
-                      class="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white"
+                      className="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={reindexing}
-                      class="px-4 py-1.5 rounded bg-[#282828] hover:bg-[#303030] text-white font-medium transition flex items-center gap-1.5"
+                      className="px-4 py-1.5 rounded bg-[#282828] hover:bg-[#303030] text-white font-medium transition flex items-center gap-1.5"
                     >
-                      {reindexing ? <i class="fa-solid fa-spinner fa-spin"></i> : <Icons.refresh className="w-3.5 h-3.5 text-[#529CCA]" />}
+                      {reindexing ? <i className="fa-solid fa-spinner fa-spin"></i> : <Icons.refresh className="w-3.5 h-3.5 text-[#529CCA]" />}
                       Save & Re-index
                     </button>
                   </div>
@@ -1466,77 +1474,77 @@ function getWebUiHtml(): string {
 
           {/* Ingest Modal */}
           {ingestOpen && (
-            <div class="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-20" onClick={() => setIngestOpen(false)}>
-              <div class="w-full max-w-lg bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
-                <div class="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
-                  <span class="font-semibold text-white text-sm">Ingest Documentation in Background</span>
-                  <button onClick={() => setIngestOpen(false)} class="text-[#787774] hover:text-white">
+            <div className="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-20" onClick={() => setIngestOpen(false)}>
+              <div className="w-full max-w-lg bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
+                  <span className="font-semibold text-white text-sm">Ingest Documentation in Background</span>
+                  <button onClick={() => setIngestOpen(false)} className="text-[#787774] hover:text-white">
                     <Icons.close className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleIngest} class="flex flex-col gap-4">
+                <form onSubmit={handleIngest} className="flex flex-col gap-4">
                   <div>
-                    <label class="text-[#9B9B9B] block mb-1">Library Name</label>
+                    <label className="text-[#9B9B9B] block mb-1">Library Name</label>
                     <input
                       type="text"
                       value={ingestLib}
                       onChange={(e) => setIngestLib(e.target.value)}
                       placeholder="e.g. react, tauri, tokio"
-                      class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono"
+                      className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono"
                     />
                   </div>
 
                   <div>
-                    <label class="text-[#9B9B9B] block mb-1">Documentation URLs (one or more per line)</label>
+                    <label className="text-[#9B9B9B] block mb-1">Documentation URLs (one or more per line)</label>
                     <textarea
                       rows={4}
                       value={ingestUrlsText}
                       onChange={(e) => setIngestUrlsText(e.target.value)}
                       placeholder="https://docs.rs/tokio/latest/tokio/&#10;https://github.com/tokio-rs/tokio"
-                      class="w-full bg-[#191919] border border-[#2a2a2a] rounded p-2.5 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono resize-none"
+                      className="w-full bg-[#191919] border border-[#2a2a2a] rounded p-2.5 text-xs text-white focus:outline-none focus:border-neutral-500 font-mono resize-none"
                     />
-                    <span class="text-[11px] text-[#787774] mt-1 block">Paste multiple URLs (GitHub repos, docs.rs, web manuals) to combine them under one library.</span>
+                    <span className="text-[11px] text-[#787774] mt-1 block">Paste multiple URLs (GitHub repos, docs.rs, web manuals) to combine them under one library.</span>
                   </div>
 
-                  <div class="border border-[#2a2a2a] rounded-lg p-3 bg-[#1c1c1c] flex flex-col gap-3">
+                  <div className="border border-[#2a2a2a] rounded-lg p-3 bg-[#1c1c1c] flex flex-col gap-3">
                     <div 
                       onClick={() => setShowAdvIngest(!showAdvIngest)}
-                      class="flex items-center justify-between cursor-pointer select-none text-[#9B9B9B] hover:text-white"
+                      className="flex items-center justify-between cursor-pointer select-none text-[#9B9B9B] hover:text-white"
                     >
-                      <span class="font-medium text-[11px] uppercase tracking-wide">Advanced Crawler Options</span>
-                      <span class="text-[11px] font-mono">{showAdvIngest ? "Hide ▲" : "Show ▼"}</span>
+                      <span className="font-medium text-[11px] uppercase tracking-wide">Advanced Crawler Options</span>
+                      <span className="text-[11px] font-mono">{showAdvIngest ? "Hide ▲" : "Show ▼"}</span>
                     </div>
 
                     {showAdvIngest && (
-                      <div class="flex flex-col gap-3 pt-2 border-t border-[#262626]">
-                        <div class="grid grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-3 pt-2 border-t border-[#262626]">
+                        <div className="grid grid-cols-3 gap-3">
                           <div>
-                            <label class="text-[#787774] block mb-1 text-[11px]">Subpath</label>
+                            <label className="text-[#787774] block mb-1 text-[11px]">Subpath</label>
                             <input
                               type="text"
                               value={ingestSubpath}
                               onChange={(e) => setIngestSubpath(e.target.value)}
                               placeholder="(optional, e.g. docs)"
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                           <div>
-                            <label class="text-[#787774] block mb-1 text-[11px]">Max Pages</label>
+                            <label className="text-[#787774] block mb-1 text-[11px]">Max Pages</label>
                             <input
                               type="number"
                               value={ingestMaxPages}
                               onChange={(e) => setIngestMaxPages(Number(e.target.value))}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                           <div>
-                            <label class="text-[#787774] block mb-1 text-[11px]">Max Depth</label>
+                            <label className="text-[#787774] block mb-1 text-[11px]">Max Depth</label>
                             <input
                               type="number"
                               value={ingestMaxDepth}
                               onChange={(e) => setIngestMaxDepth(Number(e.target.value))}
-                              class="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
+                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
                             />
                           </div>
                         </div>
@@ -1552,17 +1560,17 @@ function getWebUiHtml(): string {
                     )}
                   </div>
 
-                  <div class="flex justify-end gap-2 pt-2 border-t border-[#2a2a2a]">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-[#2a2a2a]">
                     <button
                       type="button"
                       onClick={() => setIngestOpen(false)}
-                      class="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white transition"
+                      className="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white transition"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      class="px-4 py-1.5 rounded bg-[#282828] hover:bg-[#303030] text-white font-medium transition flex items-center gap-1.5"
+                      className="px-4 py-1.5 rounded bg-[#282828] hover:bg-[#303030] text-white font-medium transition flex items-center gap-1.5"
                     >
                       <Icons.plus className="w-3.5 h-3.5 text-[#529CCA]" />
                       Start Ingest
@@ -1575,30 +1583,30 @@ function getWebUiHtml(): string {
 
           {/* Custom Confirmation Modal (Notion-Styled) */}
           {confirmModal.open && (
-            <div class="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-24" onClick={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}>
-              <div class="w-full max-w-md bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+            <div className="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-24" onClick={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}>
+              <div className="w-full max-w-md bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
                     <Icons.trash className="w-4 h-4 text-red-400" />
                   </div>
-                  <div class="flex flex-col">
-                    <span class="font-semibold text-white text-sm">{confirmModal.title}</span>
-                    <span class="text-xs text-[#9B9B9B] mt-0.5 leading-relaxed">{confirmModal.message}</span>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-white text-sm">{confirmModal.title}</span>
+                    <span className="text-xs text-[#9B9B9B] mt-0.5 leading-relaxed">{confirmModal.message}</span>
                   </div>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-[#2a2a2a]">
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#2a2a2a]">
                   <button
                     type="button"
                     onClick={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}
-                    class="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white transition"
+                    className="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={confirmModal.onConfirm}
-                    class="px-4 py-1.5 rounded bg-red-600/80 hover:bg-red-600 text-white font-medium transition"
+                    className="px-4 py-1.5 rounded bg-red-600/80 hover:bg-red-600 text-white font-medium transition"
                   >
                     Delete Permanently
                   </button>
@@ -1609,8 +1617,8 @@ function getWebUiHtml(): string {
 
           {/* Toast Notification Banner */}
           {toast.show && (
-            <div class="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-[#242424] border border-[#2e2e2e] text-xs text-white shadow-2xl animate-fade-in">
-              <span class={"w-2 h-2 rounded-full " + (toast.type === "success" ? "bg-emerald-400" : toast.type === "error" ? "bg-red-400" : "bg-[#529CCA]")}></span>
+            <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-[#242424] border border-[#2e2e2e] text-xs text-white shadow-2xl animate-fade-in">
+              <span className={"w-2 h-2 rounded-full " + (toast.type === "success" ? "bg-emerald-400" : toast.type === "error" ? "bg-red-400" : "bg-[#529CCA]")}></span>
               <span>{toast.message}</span>
             </div>
           )}
