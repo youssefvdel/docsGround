@@ -13,22 +13,22 @@
 
 ---
 
-## ⚡ Why docsGround?
+## Why docsGround?
 
 AI models hallucinate when coding with modern or rapidly evolving libraries. Traditional docs MCP servers are slow, require bloated Python environments or heavy headless browsers, and consume massive cloud resources.
 
 **docsGround** solves this by delivering an ultra-fast, zero-cloud, fully self-hosted documentation grounding stack running on **Bun + SQLite FTS5 + Local ONNX BGE Embeddings**.
 
-- 🚀 **1.4s Deep Crawl**: HTTP/2 AST crawler indexes hundreds of pages in seconds (no Playwright overhead).
-- 🧠 **Hybrid Retrieval**: BM25 exact symbol matching combined with 384-dimensional dense semantic vectors.
-- 🔒 **100% Offline & Private**: Built-in quantized BGE-Small ONNX vectorizer running locally on CPU.
-- 🌐 **Live Web Hybrid Fallback**: Auto-queries DuckDuckGo & Brave for queries outside the local index.
-- 🎨 **Notion-Style UI**: Modern dark dashboard with per-library Markdown readers and live background progress cards.
-- 🤖 **Autonomous Agent MCP Suite**: 8 native MCP tools allowing AI agents to self-serve, index, and manage docs.
+- **1.4s Deep Crawl**: HTTP/2 AST crawler indexes hundreds of pages in seconds (no Playwright overhead).
+- **Hybrid Retrieval**: BM25 exact symbol matching combined with 384-dimensional dense semantic vectors.
+- **100% Offline & Private**: Built-in quantized BGE-Small ONNX vectorizer running locally on CPU.
+- **Live Web Hybrid Fallback**: Auto-queries DuckDuckGo & Brave for queries outside the local index.
+- **Notion-Style UI**: Modern dark dashboard with per-library Markdown readers and live background progress cards.
+- **Autonomous Agent MCP Suite**: 8 native MCP tools allowing AI agents to self-serve, index, and manage docs.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Start the HTTP & Web UI Server
 ```bash
@@ -51,7 +51,7 @@ Add to your agent's MCP config:
 
 ---
 
-## 🛠️ Autonomous MCP Tool Suite
+## Autonomous MCP Tool Suite
 
 | Tool | Description |
 |---|---|
@@ -66,7 +66,7 @@ Add to your agent's MCP config:
 
 ---
 
-## 📡 REST API Reference
+## REST API Reference
 
 - `GET /api/search?q=<query>&library=<lib>&limit=10` — Perform hybrid semantic + FTS5 search.
 - `GET /api/libraries` — List all indexed libraries and page counts.
@@ -77,5 +77,5 @@ Add to your agent's MCP config:
 
 ---
 
-## 📄 License
+## License
 MIT © 2026 docsGround Contributors

@@ -10,7 +10,7 @@ const engine = new Engine();
 if (mode === "serve" || mode === "web") {
   const port = Number(process.env.PORT) || 3030;
   createHttpServer(engine, port);
-  console.log(`⚡ docsGround Web & API Server running at http://0.0.0.0:${port}`);
+  console.log(`[docsGround] Web & API Server running at http://0.0.0.0:${port}`);
 } else if (mode === "mcp") {
   const mcp = createMCPServer(engine);
   await mcp.start();
@@ -27,10 +27,10 @@ if (mode === "serve" || mode === "web") {
     target,
     type: target.includes("github.com") ? "git" : "web"
   });
-  console.log(`✅ Successfully indexed ${res.indexed} documents for ${library}`);
+  console.log(`[docsGround] Successfully indexed ${res.indexed} documents for ${library}`);
 } else {
   console.log(`
-docsGround ⚡ Live Agent Docs & Grounding Engine
+docsGround - Live Agent Docs & Grounding Engine
 
 Commands:
   bun run src/index.ts mcp             Run as Stdio MCP Server (Default)

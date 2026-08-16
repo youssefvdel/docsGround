@@ -36,6 +36,17 @@ export function createHttpServer(engine: Engine, port: number = 3030) {
         return new Response(null, { headers });
       }
 
+      // Serve app icon / logo
+      if (url.pathname === "/logo.png") {
+        const logoPath = join(import.meta.dir, "../../logo.png");
+        if (existsSync(logoPath)) {
+          return new Response(new Uint8Array(await Bun.file(logoPath).arrayBuffer()), {
+            headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400", ...headers }
+          });
+        }
+        return new Response("Not Found", { status: 404 });
+      }
+
       // Serve pre-compiled native JavaScript bundle for 0ms startup & zero Babel dependency
       if (url.pathname === "/app.js") {
         return new Response(COMPILED_APP_JS, {
