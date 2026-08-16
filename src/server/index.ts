@@ -368,6 +368,29 @@ function getWebUiHtml(): string {
       );
     }
 
+    function CustomCheckbox({ id, checked, onChange, label, description }) {
+      return (
+        <div 
+          onClick={() => onChange(!checked)}
+          class="flex items-start gap-3 p-3 bg-[#1e1e1e] hover:bg-[#252525] rounded-lg border border-[#2e2e2e] transition cursor-pointer select-none group"
+        >
+          <div class={"w-4 h-4 rounded mt-0.5 flex items-center justify-center transition flex-shrink-0 " + 
+            (checked ? "bg-[#529CCA] border border-[#529CCA]" : "bg-[#181818] border border-[#3e3e3e] group-hover:border-[#529CCA]")}
+          >
+            {checked && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            )}
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-medium text-white">{label}</span>
+            {description && <span class="text-[11px] text-[#787774]">{description}</span>}
+          </div>
+        </div>
+      );
+    }
+
     function App() {
       const [view, setView] = useState("page");
       const [libraries, setLibraries] = useState([]);
@@ -378,7 +401,14 @@ function getWebUiHtml(): string {
 
       const [activeJobs, setActiveJobs] = useState([]);
 
-      // Edit Library Modal State
+      // Active confirmation modal state
+      const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", onConfirm: null });
+      const [toast, setToast] = useState({ show: false, message: "", type: "info" });
+
+      const showToast = (message, type = "info") => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: "", type: "info" }), 3000);
+      };
       const [editOpen, setEditOpen] = useState(false);
       const [editLibName, setEditLibName] = useState("");
       const [editNewName, setEditNewName] = useState("");
@@ -539,22 +569,30 @@ function getWebUiHtml(): string {
         }
       };
 
-      const handleDeleteLibrary = async (libName, e) => {
+      const handleDeleteLibrary = (libName, e) => {
         if (e) e.stopPropagation();
-        if (!confirm("Are you sure you want to delete library '" + libName + "'?")) return;
-        try {
-          const res = await fetch("/api/library?name=" + encodeURIComponent(libName), { method: "DELETE" });
-          const data = await res.json();
-          if (data.success) {
-            loadLibraries();
-            if (currentLib === libName) {
-              setView("page");
-              setCurrentLib(null);
+        setConfirmModal({
+          open: true,
+          title: "Delete Library",
+          message: "Are you sure you want to permanently delete '" + libName + "' and all its indexed vector embeddings?",
+          onConfirm: async () => {
+            setConfirmModal({ open: false, title: "", message: "", onConfirm: null });
+            try {
+              const res = await fetch("/api/library?name=" + encodeURIComponent(libName), { method: "DELETE" });
+              const data = await res.json();
+              if (data.success) {
+                showToast("Library '" + libName + "' deleted successfully", "success");
+                loadLibraries();
+                if (currentLib === libName) {
+                  setView("page");
+                  setCurrentLib(null);
+                }
+              }
+            } catch (err) {
+              showToast("Failed to delete: " + err.message, "error");
             }
           }
-        } catch (err) {
-          alert("Failed to delete: " + err.message);
-        }
+        });
       };
 
       const openEditModal = (lib, e) => {
@@ -1393,18 +1431,13 @@ function getWebUiHtml(): string {
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-2 p-2.5 bg-[#191919] rounded border border-[#2a2a2a]">
-                    <input
-                      type="checkbox"
-                      id="cleanReindex"
-                      checked={cleanReindex}
-                      onChange={(e) => setCleanReindex(e.target.checked)}
-                      class="rounded border-[#2e2e2e] bg-[#222222] text-[#529CCA] focus:ring-0"
-                    />
-                    <label htmlFor="cleanReindex" class="text-xs text-[#D4D4D4] cursor-pointer">
-                      Wipe old documents before re-indexing (Clean Re-index)
-                    </label>
-                  </div>
+                  <CustomCheckbox
+                    id="cleanReindex"
+                    checked={cleanReindex}
+                    onChange={setCleanReindex}
+                    label="Clean Re-index"
+                    description="Wipe older documents before re-indexing this library"
+                  />
 
                   <div class="flex justify-end gap-2 pt-2 border-t border-[#2a2a2a]">
                     <button
@@ -1524,6 +1557,48 @@ function getWebUiHtml(): string {
                   </div>
                 </form>
               </div>
+            </div>
+          )}
+
+          {/* Custom Confirmation Modal (Notion-Styled) */}
+          {confirmModal.open && (
+            <div class="fixed inset-0 notion-modal-overlay z-50 flex items-start justify-center pt-24" onClick={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}>
+              <div class="w-full max-w-md bg-[#202020] border border-[#2e2e2e] rounded-xl shadow-2xl p-6 flex flex-col gap-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                    <Icons.trash className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-semibold text-white text-sm">{confirmModal.title}</span>
+                    <span class="text-xs text-[#9B9B9B] mt-0.5 leading-relaxed">{confirmModal.message}</span>
+                  </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-[#2a2a2a]">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}
+                    class="px-3 py-1.5 rounded bg-transparent hover:bg-[#282828] text-[#9B9B9B] hover:text-white transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmModal.onConfirm}
+                    class="px-4 py-1.5 rounded bg-red-600/80 hover:bg-red-600 text-white font-medium transition"
+                  >
+                    Delete Permanently
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Toast Notification Banner */}
+          {toast.show && (
+            <div class="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-[#242424] border border-[#2e2e2e] text-xs text-white shadow-2xl animate-fade-in">
+              <span class={"w-2 h-2 rounded-full " + (toast.type === "success" ? "bg-emerald-400" : toast.type === "error" ? "bg-red-400" : "bg-[#529CCA]")}></span>
+              <span>{toast.message}</span>
             </div>
           )}
         </div>
