@@ -3,6 +3,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { mkdirSync } from "fs";
 import type { DocEntry, SearchResult } from "../core/types.js";
+import { EmbeddingEngine } from "../core/embeddings.js";
 
 export class DocDB {
   private db: Database;
@@ -38,6 +39,7 @@ export class DocDB {
         url TEXT,
         headings TEXT,
         symbols TEXT,
+        embedding BLOB,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY(library) REFERENCES libraries(name) ON DELETE CASCADE
       );
@@ -52,7 +54,6 @@ export class DocDB {
         tokenize='porter unicode61'
       );
 
-      -- Triggers to keep FTS index synced
       CREATE TRIGGER IF NOT EXISTS docs_ai AFTER INSERT ON docs BEGIN
         INSERT INTO docs_fts(rowid, title, content, symbols, headings)
         VALUES (new.rowid, new.title, new.content, new.symbols, new.headings);
@@ -72,13 +73,15 @@ export class DocDB {
     `);
   }
 
-  public upsertDoc(doc: DocEntry): void {
+  public upsertDoc(doc: DocEntry, embedding?: Float32Array): void {
     const existing = this.db.query("SELECT id FROM docs WHERE id = ?").get(doc.id);
+    const embBuffer = embedding ? Buffer.from(embedding.buffer) : null;
+
     if (existing) {
       this.db.query(`
         UPDATE docs SET
           library = ?, version = ?, title = ?, path = ?, content = ?,
-          url = ?, headings = ?, symbols = ?, updated_at = ?
+          url = ?, headings = ?, symbols = ?, embedding = coalesce(?, embedding), updated_at = ?
         WHERE id = ?
       `).run(
         doc.library,
@@ -89,13 +92,14 @@ export class DocDB {
         doc.url || null,
         doc.headings ? JSON.stringify(doc.headings) : null,
         doc.symbols ? JSON.stringify(doc.symbols) : null,
+        embBuffer,
         doc.updatedAt,
         doc.id
       );
     } else {
       this.db.query(`
-        INSERT INTO docs (id, library, version, title, path, content, url, headings, symbols, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO docs (id, library, version, title, path, content, url, headings, symbols, embedding, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         doc.id,
         doc.library,
@@ -106,11 +110,11 @@ export class DocDB {
         doc.url || null,
         doc.headings ? JSON.stringify(doc.headings) : null,
         doc.symbols ? JSON.stringify(doc.symbols) : null,
+        embBuffer,
         doc.updatedAt
       );
     }
 
-    // Update library stats
     this.db.query(`
       INSERT INTO libraries (name, latest_version, source_url, doc_count, updated_at)
       VALUES (?, ?, ?, 1, ?)
