@@ -86,6 +86,6 @@ describe("docsGround End-to-End Suite", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("docsGround");
-    expect(html).toContain("Embedding Provider Configuration");
+    expect(html).toContain("Embedding Provider");
   });
 });

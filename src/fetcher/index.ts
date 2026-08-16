@@ -1,3 +1,4 @@
+import { parseHTML } from "linkedom";
 import type { FetchOptions } from "../core/types.js";
 
 const DEFAULT_USER_AGENT =
@@ -6,11 +7,10 @@ const DEFAULT_USER_AGENT =
 export class StealthFetcher {
   /**
    * Layer 1: GitHub Raw Tree API bypass
-   * Given owner/repo, fetches directory tree and raw markdown files with zero HTML rendering.
    */
   public static async fetchGitHubRepoDocs(
     repoUrl: string,
-    subpath: string = "docs"
+    subpath: string = ""
   ): Promise<{ path: string; content: string; url: string }[]> {
     const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
     if (!match || !match[1] || !match[2]) {
@@ -20,7 +20,6 @@ export class StealthFetcher {
     const owner = match[1];
     const repo = match[2].replace(/\.git$/, "");
 
-    // 1. Fetch default branch tree via GitHub API
     const treeApiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`;
     const res = await fetch(treeApiUrl, {
       headers: {
@@ -30,7 +29,6 @@ export class StealthFetcher {
     });
 
     if (!res.ok) {
-      // Fallback: If API rate-limited, try raw README.md directly
       const rawReadme = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/README.md`;
       const readmeRes = await fetch(rawReadme);
       if (readmeRes.ok) {
@@ -44,15 +42,16 @@ export class StealthFetcher {
     }
 
     const data = (await res.json()) as { tree: { path: string; type: string; url: string }[] };
+    const cleanSubpath = subpath ? subpath.replace(/^\/+/, "").replace(/\/+$/, "") : "";
+
     const docFiles = data.tree.filter(
       item =>
         item.type === "blob" &&
-        (item.path.startsWith(subpath) || item.path.toLowerCase().endsWith(".md") || item.path.toLowerCase().endsWith(".mdx") || item.path.endsWith(".d.ts"))
+        (!cleanSubpath || item.path.startsWith(cleanSubpath)) &&
+        (item.path.toLowerCase().endsWith(".md") || item.path.toLowerCase().endsWith(".mdx") || item.path.endsWith(".d.ts"))
     );
 
     const results: { path: string; content: string; url: string }[] = [];
-
-    // Concurrently fetch raw files with limit of 10
     const chunks = [];
     for (let i = 0; i < docFiles.length; i += 10) {
       chunks.push(docFiles.slice(i, i + 10));
@@ -75,6 +74,79 @@ export class StealthFetcher {
     }
 
     return results;
+  }
+
+  /**
+   * Recursive Web Docs Crawler with Real-Time Callback
+   */
+  public static async crawlWebDocs(
+    rootUrl: string,
+    maxPages: number = 500,
+    maxDepth: number = 4,
+    onPageFound?: (count: number, currentUrl: string) => void
+  ): Promise<{ url: string; html: string; path: string }[]> {
+    const originUrl = new URL(rootUrl);
+    const basePath = originUrl.pathname.replace(/\/+$/, "");
+    const basePrefix = `${originUrl.origin}${basePath}`;
+
+    const visited = new Set<string>();
+    const queue: { url: string; depth: number }[] = [{ url: rootUrl, depth: 0 }];
+    const crawledDocs: { url: string; html: string; path: string }[] = [];
+
+    while (queue.length > 0 && crawledDocs.length < maxPages) {
+      const current = queue.shift()!;
+      const cleanUrl = current.url.split("#")[0]!.replace(/\/+$/, "");
+
+      if (visited.has(cleanUrl)) continue;
+      visited.add(cleanUrl);
+
+      try {
+        const { html, url: finalUrl } = await this.fetchWebPage(current.url);
+        const parsedUrl = new URL(finalUrl);
+        const relativePath = parsedUrl.pathname.replace(basePath, "") || "/";
+
+        const docItem = {
+          url: finalUrl,
+          html,
+          path: relativePath === "/" ? "index.html" : relativePath.replace(/^\//, "")
+        };
+        crawledDocs.push(docItem);
+
+        if (onPageFound) {
+          onPageFound(crawledDocs.length, docItem.path);
+        }
+
+        if (current.depth < maxDepth) {
+          const { document } = parseHTML(html);
+          const links = Array.from(document.querySelectorAll("a[href]"))
+            .map(a => a.getAttribute("href"))
+            .filter(Boolean) as string[];
+
+          for (const href of links) {
+            try {
+              const fullUrl = new URL(href, finalUrl);
+              const cleanFull = fullUrl.origin + fullUrl.pathname;
+              
+              if (
+                fullUrl.origin === originUrl.origin &&
+                (cleanFull.startsWith(basePrefix) || cleanFull.includes(basePath)) &&
+                !cleanFull.endsWith(".png") &&
+                !cleanFull.endsWith(".jpg") &&
+                !cleanFull.endsWith(".svg") &&
+                !cleanFull.endsWith(".zip") &&
+                !visited.has(cleanFull.replace(/\/+$/, ""))
+              ) {
+                queue.push({ url: fullUrl.href, depth: current.depth + 1 });
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to crawl ${current.url}:`, err);
+      }
+    }
+
+    return crawledDocs;
   }
 
   /**

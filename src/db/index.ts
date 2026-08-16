@@ -5,7 +5,7 @@ import { mkdirSync } from "fs";
 import type { DocEntry, SearchResult } from "../core/types.js";
 
 export class DocDB {
-  private db: Database;
+  public db: Database;
 
   constructor(customPath?: string) {
     const dir = customPath ? customPath : join(homedir(), ".docsground");
@@ -71,7 +71,6 @@ export class DocDB {
       END;
     `);
 
-    // Migration guard: Ensure embedding column exists
     try {
       this.db.exec("ALTER TABLE docs ADD COLUMN embedding BLOB;");
     } catch {}
@@ -119,14 +118,45 @@ export class DocDB {
       );
     }
 
+    // Append / update source_url list in library table
+    const currentLib = this.db.query("SELECT source_url FROM libraries WHERE name = ?").get(doc.library) as any;
+    let urlList: string[] = [];
+    if (currentLib && currentLib.source_url) {
+      try {
+        urlList = JSON.parse(currentLib.source_url);
+        if (!Array.isArray(urlList)) urlList = [currentLib.source_url];
+      } catch {
+        urlList = [currentLib.source_url];
+      }
+    }
+    if (doc.url && !urlList.includes(doc.url)) {
+      urlList.push(doc.url);
+    }
+
     this.db.query(`
       INSERT INTO libraries (name, latest_version, source_url, doc_count, updated_at)
       VALUES (?, ?, ?, 1, ?)
       ON CONFLICT(name) DO UPDATE SET
         latest_version = excluded.latest_version,
+        source_url = ?,
         doc_count = (SELECT COUNT(*) FROM docs WHERE library = excluded.name),
         updated_at = excluded.updated_at
-    `).run(doc.library, doc.version, doc.url || null, Date.now());
+    `).run(doc.library, doc.version, JSON.stringify(urlList), Date.now(), JSON.stringify(urlList));
+  }
+
+  public updateLibrarySourceUrl(name: string, sourceUrl: string): void {
+    let urls: string[] = [];
+    try {
+      urls = JSON.parse(sourceUrl);
+      if (!Array.isArray(urls)) urls = [sourceUrl];
+    } catch {
+      urls = [sourceUrl];
+    }
+    this.db.query("UPDATE libraries SET source_url = ?, updated_at = ? WHERE name = ?").run(
+      JSON.stringify(urls),
+      Date.now(),
+      name
+    );
   }
 
   public search(query: string, library?: string, limit: number = 10): SearchResult[] {
@@ -138,7 +168,7 @@ export class DocDB {
     let sql = `
       SELECT 
         d.id, d.library, d.version, d.title, d.path, d.url,
-        snippet(docs_fts, 1, '<b>', '</b>', '...', 32) AS snippet,
+        snippet(docs_fts, 1, '<mark class="bg-yellow-500/30 text-yellow-200 px-0.5 rounded">', '</mark>', '...', 32) AS snippet,
         bm25(docs_fts, 5.0, 1.0, 10.0, 3.0) AS score
       FROM docs_fts
       JOIN docs d ON docs_fts.rowid = d.rowid
@@ -172,11 +202,56 @@ export class DocDB {
     }
   }
 
-  public listLibraries(): { name: string; latestVersion: string; docCount: number; updatedAt: number }[] {
-    const rows = this.db.query("SELECT name, latest_version, doc_count, updated_at FROM libraries ORDER BY name ASC").all() as any[];
+  public getDocsByLibrary(library: string): { id: string; title: string; path: string; headings?: string[]; symbols?: string[] }[] {
+    const rows = this.db.query("SELECT id, title, path, headings, symbols FROM docs WHERE library = ? ORDER BY path ASC").all(library) as any[];
+    return rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      path: r.path,
+      headings: r.headings ? JSON.parse(r.headings) : undefined,
+      symbols: r.symbols ? JSON.parse(r.symbols) : undefined
+    }));
+  }
+
+  public getAllDocsWithEmbeddings(library?: string): { doc: DocEntry; embedding: Float32Array | null }[] {
+    let sql = "SELECT * FROM docs";
+    const params: any[] = [];
+    if (library) {
+      sql += " WHERE library = ?";
+      params.push(library);
+    }
+
+    const rows = this.db.query(sql).all(...params) as any[];
+    return rows.map(r => {
+      let vec: Float32Array | null = null;
+      if (r.embedding) {
+        const buf = Buffer.from(r.embedding);
+        vec = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+      }
+      return {
+        doc: {
+          id: r.id,
+          library: r.library,
+          version: r.version,
+          title: r.title,
+          path: r.path,
+          content: r.content,
+          url: r.url || undefined,
+          headings: r.headings ? JSON.parse(r.headings) : undefined,
+          symbols: r.symbols ? JSON.parse(r.symbols) : undefined,
+          updatedAt: Number(r.updated_at)
+        },
+        embedding: vec
+      };
+    });
+  }
+
+  public listLibraries(): { name: string; latestVersion: string; sourceUrl: string; docCount: number; updatedAt: number }[] {
+    const rows = this.db.query("SELECT name, latest_version, source_url, doc_count, updated_at FROM libraries ORDER BY name ASC").all() as any[];
     return rows.map(r => ({
       name: r.name,
       latestVersion: r.latest_version,
+      sourceUrl: r.source_url || "",
       docCount: Number(r.doc_count),
       updatedAt: Number(r.updated_at)
     }));
@@ -202,5 +277,20 @@ export class DocDB {
   public deleteLibrary(name: string): void {
     this.db.query("DELETE FROM docs WHERE library = ?").run(name);
     this.db.query("DELETE FROM libraries WHERE name = ?").run(name);
+  }
+
+  public renameLibrary(oldName: string, newName: string): boolean {
+    const cleanOld = oldName.trim().toLowerCase();
+    const cleanNew = newName.trim().toLowerCase();
+    if (!cleanNew || cleanOld === cleanNew) return false;
+
+    this.db.query("UPDATE libraries SET name = ? WHERE name = ?").run(cleanNew, cleanOld);
+
+    const docs = this.db.query("SELECT id, path, version FROM docs WHERE library = ?").all(cleanOld) as any[];
+    for (const d of docs) {
+      const newId = `${cleanNew}:${d.version}:${d.path}`;
+      this.db.query("UPDATE docs SET id = ?, library = ? WHERE id = ?").run(newId, cleanNew, d.id);
+    }
+    return true;
   }
 }

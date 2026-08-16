@@ -37,12 +37,18 @@ export class EmbeddingEngine {
 
   private static async embedLocal(text: string): Promise<Float32Array> {
     if (!this.localExtractor) {
-      const { pipeline } = await import("@xenova/transformers");
+      const { pipeline, env } = await import("@xenova/transformers");
+      env.allowLocalModels = false;
+      env.useBrowserCache = false;
+      if (env.backends?.onnx?.wasm) {
+        env.backends.onnx.wasm.numThreads = 1;
+        env.backends.onnx.wasm.proxy = false;
+      }
       this.localExtractor = await pipeline("feature-extraction", "Xenova/bge-small-en-v1.5", {
         quantized: true
       });
     }
-    const output = await this.localExtractor(text.slice(0, 2000), {
+    const output = await this.localExtractor(text.slice(0, 1000), {
       pooling: "mean",
       normalize: true
     });
