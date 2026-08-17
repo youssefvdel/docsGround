@@ -109,7 +109,7 @@ function CustomNumberStepper({ value, onChange, min = 1, max = 10000, step = 1, 
 function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, lastSearchInfo, onOpenDoc, height = "520px" }) {
   const containerRef = useRef(null);
   const [pan, setPan] = useState({ x: 500, y: 220 });
-  const [zoom, setZoom] = useState(0.55);
+  const [zoom, setZoom] = useState(0.38);
   const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -134,7 +134,7 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
       e.preventDefault();
       e.stopPropagation();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom(z => Math.max(0.2, Math.min(2.5, z * delta)));
+      setZoom(z => Math.max(0.12, Math.min(2.5, z * delta)));
     };
 
     el.addEventListener("wheel", onWheelHandler, { passive: false });
@@ -364,7 +364,7 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       setPan({ x: rect.width / 2, y: rect.height / 2 });
-      setZoom(0.55);
+      setZoom(0.38);
     }
   };
 
