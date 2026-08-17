@@ -34,7 +34,8 @@ export class Engine {
       if (source.type === "git" || source.target.includes("github.com")) {
         if (jobId) JobManager.updateProgress(jobId, 0, 10, "Fetching GitHub file tree...");
         const files = await StealthFetcher.fetchGitHubRepoDocs(source.target, source.subpath || "");
-        let count = 0;
+        let processedCount = 0;
+        let newlyIndexedCount = 0;
         const total = files.length;
 
         if (jobId) JobManager.updateProgress(jobId, 0, total, `Found ${total} markdown files`);
@@ -67,15 +68,19 @@ export class Engine {
             updatedAt: Date.now()
           };
           const result = this.db.upsertDoc(doc, embedding);
-          if (!result.skipped) count++;
+          if (!result.skipped) newlyIndexedCount++;
+          processedCount++;
 
           if (jobId) {
-            JobManager.updateProgress(jobId, count, total, `Indexed: ${file.path}`);
+            const statusMsg = result.skipped 
+              ? `Synced: ${file.path}`
+              : `Indexed (${processedCount}/${total}): ${file.path}`;
+            JobManager.updateProgress(jobId, processedCount, total, statusMsg);
           }
         }
 
-        if (jobId) JobManager.completeJob(jobId, count);
-        return { indexed: count, library: source.library };
+        if (jobId) JobManager.completeJob(jobId, processedCount);
+        return { indexed: newlyIndexedCount, library: source.library };
       } else {
         // Web Crawl with Live Found Pages Updates
         if (jobId) JobManager.updateProgress(jobId, 0, 100, "Discovering & crawling web subpages...");
@@ -91,7 +96,8 @@ export class Engine {
           }
         );
 
-        let count = 0;
+        let processedCount = 0;
+        let newlyIndexedCount = 0;
         const total = crawledPages.length;
 
         for (const page of crawledPages) {
@@ -123,7 +129,8 @@ export class Engine {
           };
 
           const result = this.db.upsertDoc(doc, embedding);
-          if (!result.skipped) count++;
+          if (!result.skipped) newlyIndexedCount++;
+          processedCount++;
 
           EventBus.emitDocIndexed({
             library: source.library,
@@ -134,12 +141,15 @@ export class Engine {
           });
 
           if (jobId) {
-            JobManager.updateProgress(jobId, count, total, `Embedded & Saved (${count}/${total}): ${page.path}`);
+            const statusMsg = result.skipped 
+              ? `Synced: ${page.path}`
+              : `Indexed (${processedCount}/${total}): ${page.path}`;
+            JobManager.updateProgress(jobId, processedCount, total, statusMsg);
           }
         }
 
-        if (jobId) JobManager.completeJob(jobId, count);
-        return { indexed: count, library: source.library };
+        if (jobId) JobManager.completeJob(jobId, processedCount);
+        return { indexed: newlyIndexedCount, library: source.library };
       }
     } catch (err: any) {
       if (jobId) JobManager.failJob(jobId, err.message || "Ingestion failed");
