@@ -623,7 +623,14 @@ function App() {
   const pollJobs = () => {
     fetch("/api/jobs")
       .then(r => r.json())
-      .then(data => setActiveJobs(data.active || []))
+      .then(data => {
+        const jobs = data.active || [];
+        setActiveJobs(jobs);
+        if (jobs.some(j => j.status === "completed")) {
+          loadLibraries();
+          loadTopology();
+        }
+      })
       .catch(console.error);
   };
 
@@ -633,7 +640,7 @@ function App() {
     loadConfig();
     pollJobs();
 
-    const interval = setInterval(pollJobs, 1200);
+    const interval = setInterval(pollJobs, 650);
 
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -1012,6 +1019,17 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            {activeJobs.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-[#0C4A6E]/80 border border-[#0284C7]/50 rounded-xl text-xs font-mono text-[#38BDF8] shadow-lg animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-ping"></span>
+                <span className="font-semibold">Indexing {activeJobs[0].library}:</span>
+                <span>{activeJobs[0].progress}%</span>
+                <div className="w-16 bg-[#082F49] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#38BDF8] h-full transition-all duration-200" style={{ width: activeJobs[0].progress + '%' }}></div>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={() => setSearchOpen(true)}
               className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[#14161A] hover:bg-[#1C1E24] border border-[#23262F] text-xs text-[#A1A1AA] transition shadow-sm group"
@@ -1116,48 +1134,66 @@ function App() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
-                    {libraries.map(lib => (
-                      <div 
-                        key={lib.name}
-                        onClick={() => openLibrary(lib.name)}
-                        className="p-4 bg-[#111216] hover:bg-[#16181E] border border-[#1E2027] hover:border-[#2C303B] rounded-2xl transition cursor-pointer flex flex-col justify-between h-36 group shadow-lg"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-[#1A1C23] flex items-center justify-center text-white">
-                              <Icons.book className="w-4 h-4 text-emerald-400" />
+                    {libraries.map(lib => {
+                      const activeJob = activeJobs.find(j => j.library === lib.name);
+                      return (
+                        <div 
+                          key={lib.name}
+                          onClick={() => openLibrary(lib.name)}
+                          className={"p-4 bg-[#111216] hover:bg-[#16181E] border rounded-2xl transition cursor-pointer flex flex-col justify-between h-36 group shadow-lg " +
+                            (activeJob ? "border-[#0284C7] shadow-sky-950/30 ring-1 ring-[#0284C7]/50" : "border-[#1E2027] hover:border-[#2C303B]")}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-[#1A1C23] flex items-center justify-center text-white">
+                                <Icons.book className="w-4 h-4 text-emerald-400" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{lib.name}</span>
+                                <span className="text-[10px] font-mono text-[#71717A]">{lib.latestVersion}</span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{lib.name}</span>
-                              <span className="text-[10px] font-mono text-[#71717A]">{lib.latestVersion}</span>
-                            </div>
+                            <span className="text-xs font-mono text-[#71717A] bg-[#16181E] px-2 py-0.5 rounded-lg border border-[#22252D]">
+                              {lib.docCount} docs
+                            </span>
                           </div>
-                          <span className="text-xs font-mono text-[#71717A] bg-[#16181E] px-2 py-0.5 rounded-lg border border-[#22252D]">
-                            {lib.docCount} docs
-                          </span>
-                        </div>
 
-                        <div className="flex items-center justify-between text-xs pt-2 border-t border-[#1C1E24]">
-                          <span className="text-[11px] text-[#71717A] truncate max-w-[160px]">Open Reader</span>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={(e) => openEditModal(lib, e)}
-                              title="Edit & Re-index"
-                              className="p-1 text-[#71717A] hover:text-white rounded-lg hover:bg-[#22252D] transition"
-                            >
-                              <Icons.edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => handleDeleteLibrary(lib.name, e)}
-                              title="Delete"
-                              className="p-1 text-[#71717A] hover:text-rose-400 rounded-lg hover:bg-[#22252D] transition"
-                            >
-                              <Icons.trash className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                          {activeJob ? (
+                            <div className="flex flex-col gap-1 pt-2 border-t border-[#1C1E24]">
+                              <div className="flex items-center justify-between text-[11px] font-mono">
+                                <span className="text-[#38BDF8] font-semibold">
+                                  {activeJob.status === "completed" ? "✓ Indexed" : `Indexing (${activeJob.processedFiles}/${activeJob.totalFiles || '?'})`}
+                                </span>
+                                <span className="text-[#38BDF8]">{activeJob.progress}%</span>
+                              </div>
+                              <div className="w-full bg-[#14161A] h-1.5 rounded-full overflow-hidden">
+                                <div className="bg-[#38BDF8] h-full transition-all duration-200 rounded-full" style={{ width: activeJob.progress + '%' }}></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-[#1C1E24]">
+                              <span className="text-[11px] text-[#71717A] truncate max-w-[160px]">Open Reader</span>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={(e) => openEditModal(lib, e)}
+                                  title="Edit & Re-index"
+                                  className="p-1 text-[#71717A] hover:text-white rounded-lg hover:bg-[#22252D] transition"
+                                >
+                                  <Icons.edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteLibrary(lib.name, e)}
+                                  title="Delete"
+                                  className="p-1 text-[#71717A] hover:text-rose-400 rounded-lg hover:bg-[#22252D] transition"
+                                >
+                                  <Icons.trash className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1224,6 +1260,23 @@ function App() {
                     </button>
                   </div>
                 </div>
+
+                {/* Active Re-index Progress Bar in Sidebar */}
+                {(() => {
+                  const job = activeJobs.find(j => j.library === currentLib);
+                  if (!job) return null;
+                  return (
+                    <div className="p-3 bg-[#082F49]/40 border-b border-[#0284C7]/30 flex flex-col gap-1.5 animate-pulse">
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-[#38BDF8] font-semibold">{job.status === "completed" ? "✓ Done" : "Re-indexing..."}</span>
+                        <span className="text-[#38BDF8]">{job.progress}%</span>
+                      </div>
+                      <div className="w-full bg-[#0C1E2E] h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-[#38BDF8] h-full transition-all duration-200" style={{ width: job.progress + '%' }}></div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
                   {libraryDocs.map(d => (

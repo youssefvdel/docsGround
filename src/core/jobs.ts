@@ -37,7 +37,11 @@ export class JobManager {
   }
 
   public static getActiveJobs(): IngestionJob[] {
-    return Array.from(this.jobs.values()).filter(j => j.status === "running");
+    const now = Date.now();
+    // Return currently running jobs + recently finished jobs (within last 6 seconds) for smooth UI feedback
+    return Array.from(this.jobs.values()).filter(j => 
+      j.status === "running" || (now - j.updatedAt < 6000)
+    );
   }
 
   public static getAllJobs(): IngestionJob[] {
