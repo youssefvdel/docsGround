@@ -56,16 +56,20 @@ function CustomCheckbox({ id, checked, onChange, label, description }) {
   );
 }
 
-function CustomNumberStepper({ value, onChange, min = 1, max = 10000, step = 1, unit = "" }) {
+function CustomNumberStepper({ value, onChange, min = 0, max = 10000, step = 1, unit = "" }) {
   const handleDecrement = (e) => {
     e.preventDefault();
-    onChange(Math.max(min, (Number(value) || min) - step));
+    const current = Number(value) || 0;
+    onChange(Math.max(min, current - step));
   };
 
   const handleIncrement = (e) => {
     e.preventDefault();
-    onChange(Math.min(max, (Number(value) || min) + step));
+    const current = Number(value) || 0;
+    onChange(Math.min(max, current + step));
   };
+
+  const isUnlimited = Number(value) === 0;
 
   return (
     <div className="flex items-center bg-[#0C0D0F] border border-[#22252D] hover:border-[#333845] focus-within:border-emerald-500 rounded-xl overflow-hidden transition shadow-inner">
@@ -75,10 +79,15 @@ function CustomNumberStepper({ value, onChange, min = 1, max = 10000, step = 1, 
         max={max}
         step={step}
         value={value}
-        onChange={(e) => onChange(Number(e.target.value) || min)}
+        onChange={(e) => {
+          const val = Number(e.target.value);
+          onChange(isNaN(val) ? 0 : Math.max(min, Math.min(max, val)));
+        }}
         className="w-full bg-transparent px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
       />
-      {unit && <span className="text-[11px] font-mono text-[#71717A] pr-2 select-none">{unit}</span>}
+      <span className="text-[11px] font-mono text-[#71717A] pr-2.5 select-none whitespace-nowrap">
+        {isUnlimited ? "∞ (Unlimited)" : unit}
+      </span>
       <div className="flex flex-col border-l border-[#22252D] bg-[#14161A] flex-shrink-0">
         <button
           type="button"
@@ -576,14 +585,14 @@ function App() {
   const [ingestUrlsText, setIngestUrlsText] = useState("");
   const [ingestSubpath, setIngestSubpath] = useState("");
   const [showAdvIngest, setShowAdvIngest] = useState(false);
-  const [ingestMaxPages, setIngestMaxPages] = useState(500);
-  const [ingestMaxDepth, setIngestMaxDepth] = useState(4);
+  const [ingestMaxPages, setIngestMaxPages] = useState(0);
+  const [ingestMaxDepth, setIngestMaxDepth] = useState(0);
   const [ingestCleanReindex, setIngestCleanReindex] = useState(false);
 
   const [settingsTab, setSettingsTab] = useState("general");
   const [config, setConfig] = useState({
     embedding: { provider: "local", model: "Xenova/bge-small-en-v1.5" },
-    crawler: { maxPages: 500, maxDepth: 4 },
+    crawler: { maxPages: 0, maxDepth: 0 },
     server: { port: 3030, host: "0.0.0.0" }
   });
   const [savingConfig, setSavingConfig] = useState(false);
@@ -613,8 +622,8 @@ function App() {
       .then(data => {
         if (data && data.crawler) {
           setConfig(data);
-          setIngestMaxPages(data.crawler.maxPages || 500);
-          setIngestMaxDepth(data.crawler.maxDepth || 4);
+          setIngestMaxPages(data.crawler.maxPages ?? 0);
+          setIngestMaxDepth(data.crawler.maxDepth ?? 0);
         }
       })
       .catch(console.error);
@@ -772,8 +781,8 @@ function App() {
       urls = lib.sourceUrl ? [lib.sourceUrl] : [];
     }
     setEditUrlsText(urls.join("\n"));
-    setEditMaxPages(config.crawler?.maxPages || 500);
-    setEditMaxDepth(config.crawler?.maxDepth || 4);
+    setEditMaxPages(config.crawler?.maxPages ?? 0);
+    setEditMaxDepth(config.crawler?.maxDepth ?? 0);
     setCleanReindex(false);
     setEditOpen(true);
   };
@@ -902,8 +911,8 @@ function App() {
       const payload = {
         ...config,
         crawler: {
-          maxPages: Number(config.crawler?.maxPages) || 500,
-          maxDepth: Number(config.crawler?.maxDepth) || 4
+          maxPages: config.crawler?.maxPages !== undefined ? Number(config.crawler.maxPages) : 2000,
+          maxDepth: config.crawler?.maxDepth !== undefined ? Number(config.crawler.maxDepth) : 10
         }
       };
       const res = await fetch("/api/config", {
@@ -1424,27 +1433,30 @@ function App() {
 
                   {/* Crawler Options */}
                   <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-4 shadow-lg">
-                    <span className="text-sm font-semibold text-white">Crawler Ingestion Limits</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-white">Crawler Ingestion Limits</span>
+                      <span className="text-[11px] font-mono text-emerald-400/80">0 = Unlimited full site ingestion</span>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[#A1A1AA] block mb-1.5 text-xs font-medium">Default Max Pages</label>
+                        <label className="text-[#A1A1AA] block mb-1.5 text-xs font-medium">Default Max Pages (0 for all)</label>
                         <CustomNumberStepper
-                          min={10}
-                          max={10000}
+                          min={0}
+                          max={50000}
                           step={100}
                           unit="pages"
-                          value={config.crawler?.maxPages || 500}
+                          value={config.crawler?.maxPages ?? 2000}
                           onChange={(val) => setConfig({ ...config, crawler: { ...config.crawler, maxPages: val } })}
                         />
                       </div>
                       <div>
-                        <label className="text-[#A1A1AA] block mb-1.5 text-xs font-medium">Default Max Crawl Depth</label>
+                        <label className="text-[#A1A1AA] block mb-1.5 text-xs font-medium">Default Max Crawl Depth (0 for all)</label>
                         <CustomNumberStepper
-                          min={1}
-                          max={20}
+                          min={0}
+                          max={50}
                           step={1}
                           unit="levels"
-                          value={config.crawler?.maxDepth || 4}
+                          value={config.crawler?.maxDepth ?? 10}
                           onChange={(val) => setConfig({ ...config, crawler: { ...config.crawler, maxDepth: val } })}
                         />
                       </div>

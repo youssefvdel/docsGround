@@ -77,7 +77,8 @@ export class StealthFetcher {
   }
 
   /**
-   * Recursive Web Docs Crawler with Real-Time Callback
+   * High-Performance Concurrent Web Docs Crawler with Real-Time Progress Stream
+   * Supports unlimited pages/depth (when set to 0 / Infinity) and concurrent workers
    */
   public static async crawlWebDocs(
     rootUrl: string,
@@ -89,11 +90,18 @@ export class StealthFetcher {
     const basePath = originUrl.pathname.replace(/\/+$/, "");
     const basePrefix = `${originUrl.origin}${basePath}`;
 
+    // 0 or negative = Unlimited
+    const effectiveMaxPages = maxPages <= 0 ? 100000 : maxPages;
+    const effectiveMaxDepth = maxDepth <= 0 ? 100 : maxDepth;
+
     const visited = new Set<string>();
+    const queued = new Set<string>();
     const queue: { url: string; depth: number }[] = [{ url: rootUrl, depth: 0 }];
+    queued.add(rootUrl.split("#")[0]!.replace(/\/+$/, ""));
+
     const crawledDocs: { url: string; html: string; path: string }[] = [];
 
-    // 2. Fast path for docs.rs crates: seed queue directly from all.html
+    // Fast path for docs.rs crates: seed queue directly from all.html
     if (originUrl.hostname === "docs.rs") {
       try {
         const allHtmlUrl = `${basePrefix}/all.html`;
@@ -106,8 +114,9 @@ export class StealthFetcher {
         for (const href of links) {
           try {
             const fullUrl = new URL(href, allHtmlUrl);
-            const clean = fullUrl.origin + fullUrl.pathname;
-            if (clean.startsWith(basePrefix) && clean.endsWith(".html") && !clean.endsWith("all.html") && !visited.has(clean)) {
+            const clean = fullUrl.origin + fullUrl.pathname.replace(/\/+$/, "");
+            if (clean.startsWith(basePrefix) && clean.endsWith(".html") && !clean.endsWith("all.html") && !queued.has(clean)) {
+              queued.add(clean);
               queue.push({ url: fullUrl.href, depth: 1 });
             }
           } catch {}
@@ -115,60 +124,90 @@ export class StealthFetcher {
       } catch {}
     }
 
-    while (queue.length > 0 && crawledDocs.length < maxPages) {
-      const current = queue.shift()!;
-      const cleanUrl = current.url.split("#")[0]!.replace(/\/+$/, "");
+    const CONCURRENCY = 6;
+    let activeWorkers = 0;
 
-      if (visited.has(cleanUrl)) continue;
-      visited.add(cleanUrl);
-
-      try {
-        const { html, url: finalUrl } = await this.fetchWebPage(current.url);
-        const parsedUrl = new URL(finalUrl);
-        const relativePath = parsedUrl.pathname.replace(basePath, "") || "/";
-
-        const docItem = {
-          url: finalUrl,
-          html,
-          path: relativePath === "/" ? "index.html" : relativePath.replace(/^\//, "")
-        };
-        crawledDocs.push(docItem);
-
-        if (onPageFound) {
-          onPageFound(crawledDocs.length, docItem.path);
+    return new Promise((resolve) => {
+      const checkDone = () => {
+        if (queue.length === 0 && activeWorkers === 0 || crawledDocs.length >= effectiveMaxPages) {
+          resolve(crawledDocs);
+          return true;
         }
+        return false;
+      };
 
-        if (current.depth < maxDepth) {
-          const { document } = parseHTML(html);
-          const links = Array.from(document.querySelectorAll("a[href]"))
-            .map(a => a.getAttribute("href"))
-            .filter(Boolean) as string[];
+      const worker = async () => {
+        while (queue.length > 0 && crawledDocs.length < effectiveMaxPages) {
+          const current = queue.shift();
+          if (!current) break;
 
-          for (const href of links) {
-            try {
-              const fullUrl = new URL(href, finalUrl);
-              const cleanFull = fullUrl.origin + fullUrl.pathname;
-              
-              if (
-                fullUrl.origin === originUrl.origin &&
-                (cleanFull.startsWith(basePrefix) || cleanFull.includes(basePath)) &&
-                !cleanFull.endsWith(".png") &&
-                !cleanFull.endsWith(".jpg") &&
-                !cleanFull.endsWith(".svg") &&
-                !cleanFull.endsWith(".zip") &&
-                !visited.has(cleanFull.replace(/\/+$/, ""))
-              ) {
-                queue.push({ url: fullUrl.href, depth: current.depth + 1 });
+          const cleanUrl = current.url.split("#")[0]!.replace(/\/+$/, "");
+          if (visited.has(cleanUrl)) continue;
+          visited.add(cleanUrl);
+
+          activeWorkers++;
+          try {
+            const { html, url: finalUrl } = await this.fetchWebPage(current.url);
+            const parsedUrl = new URL(finalUrl);
+            const relativePath = parsedUrl.pathname.replace(basePath, "") || "/";
+
+            const docItem = {
+              url: finalUrl,
+              html,
+              path: relativePath === "/" ? "index.html" : relativePath.replace(/^\//, "")
+            };
+            crawledDocs.push(docItem);
+
+            if (onPageFound) {
+              onPageFound(crawledDocs.length, docItem.path);
+            }
+
+            if (current.depth < effectiveMaxDepth && crawledDocs.length < effectiveMaxPages) {
+              const { document } = parseHTML(html);
+              const links = Array.from(document.querySelectorAll("a[href]"))
+                .map(a => a.getAttribute("href"))
+                .filter(Boolean) as string[];
+
+              for (const href of links) {
+                try {
+                  const fullUrl = new URL(href, finalUrl);
+                  const cleanFull = (fullUrl.origin + fullUrl.pathname).replace(/\/+$/, "");
+
+                  if (
+                    fullUrl.origin === originUrl.origin &&
+                    (cleanFull.startsWith(basePrefix) || cleanFull.includes(basePath)) &&
+                    !cleanFull.endsWith(".png") &&
+                    !cleanFull.endsWith(".jpg") &&
+                    !cleanFull.endsWith(".svg") &&
+                    !cleanFull.endsWith(".zip") &&
+                    !cleanFull.endsWith(".tar.gz") &&
+                    !queued.has(cleanFull)
+                  ) {
+                    queued.add(cleanFull);
+                    queue.push({ url: fullUrl.href, depth: current.depth + 1 });
+                  }
+                } catch {}
               }
-            } catch {}
+            }
+          } catch (err) {
+            console.error(`Failed to crawl ${current.url}:`, err);
+          } finally {
+            activeWorkers--;
           }
         }
-      } catch (err) {
-        console.error(`Failed to crawl ${current.url}:`, err);
-      }
-    }
 
-    return crawledDocs;
+        if (!checkDone()) {
+          // If items were queued by another worker while waiting, spawn next batch
+          if (queue.length > 0 && activeWorkers < CONCURRENCY) {
+            worker();
+          }
+        }
+      };
+
+      for (let i = 0; i < CONCURRENCY; i++) {
+        worker();
+      }
+    });
   }
 
   /**

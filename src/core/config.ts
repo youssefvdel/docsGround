@@ -23,8 +23,8 @@ const DEFAULT_CONFIG: DocsGroundConfig = {
     model: "Xenova/bge-small-en-v1.5"
   },
   crawler: {
-    maxPages: 500,
-    maxDepth: 4
+    maxPages: 0, // 0 = Unlimited (indexes entire docs suite)
+    maxDepth: 0  // 0 = Unlimited (crawls all submodules/traits/pages)
   },
   server: {
     port: 3030,
@@ -70,8 +70,8 @@ export class ConfigManager {
       ...current,
       ...config,
       crawler: {
-        maxPages: Number(config.crawler?.maxPages) > 0 ? Number(config.crawler?.maxPages) : current.crawler.maxPages,
-        maxDepth: Number(config.crawler?.maxDepth) > 0 ? Number(config.crawler?.maxDepth) : current.crawler.maxDepth
+        maxPages: config.crawler?.maxPages !== undefined ? Number(config.crawler.maxPages) : current.crawler.maxPages,
+        maxDepth: config.crawler?.maxDepth !== undefined ? Number(config.crawler.maxDepth) : current.crawler.maxDepth
       },
       embedding: {
         provider: "local",
