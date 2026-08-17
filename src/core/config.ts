@@ -70,8 +70,8 @@ export class ConfigManager {
       ...current,
       ...config,
       crawler: {
-        ...current.crawler,
-        ...(config.crawler || {})
+        maxPages: Number(config.crawler?.maxPages) > 0 ? Number(config.crawler?.maxPages) : current.crawler.maxPages,
+        maxDepth: Number(config.crawler?.maxDepth) > 0 ? Number(config.crawler?.maxDepth) : current.crawler.maxDepth
       },
       embedding: {
         provider: "local",

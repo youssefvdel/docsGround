@@ -550,7 +550,13 @@ function App() {
   const loadConfig = () => {
     fetch("/api/config")
       .then(r => r.json())
-      .then(data => setConfig(data))
+      .then(data => {
+        if (data && data.crawler) {
+          setConfig(data);
+          setIngestMaxPages(data.crawler.maxPages || 500);
+          setIngestMaxDepth(data.crawler.maxDepth || 4);
+        }
+      })
       .catch(console.error);
   };
 
@@ -826,16 +832,26 @@ function App() {
     e.preventDefault();
     setSavingConfig(true);
     try {
+      const payload = {
+        ...config,
+        crawler: {
+          maxPages: Number(config.crawler?.maxPages) || 500,
+          maxDepth: Number(config.crawler?.maxDepth) || 4
+        }
+      };
       const res = await fetch("/api/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.config) {
+        setConfig(data.config);
+        setIngestMaxPages(data.config.crawler.maxPages);
+        setIngestMaxDepth(data.config.crawler.maxDepth);
         setConfigMsg("Saved successfully");
-        showToast("Settings saved", "success");
-        setTimeout(() => setConfigMsg(""), 2000);
+        showToast("Settings saved to disk", "success");
+        setTimeout(() => setConfigMsg(""), 2500);
       }
     } catch (err) {
       showToast(err.message, "error");
