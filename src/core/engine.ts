@@ -365,27 +365,55 @@ export class Engine {
 
     scored.sort((a, b) => b.sim - a.sim);
 
-    if (scored.length === 0) {
-      return { grounded: false, confidence: 0 };
+    if (scored.length > 0) {
+      const topMatches = scored.slice(0, limit);
+      const top = topMatches[0];
+
+      const contextBlocks = topMatches.map(m => {
+        const snippet = m.doc.content.slice(0, 750).trim();
+        return `### ${m.doc.library} • ${m.doc.title}\nSource: ${m.doc.url || m.doc.path}\nSemantic Match: ${(m.sim * 100).toFixed(1)}%\n\`\`\`markdown\n${snippet}\n\`\`\``;
+      }).join("\n\n");
+
+      const fullContext = `<grounded_docs source="local-index" intent="${cleanQ.replace(/"/g, "'")}" confidence="${(top.sim * 100).toFixed(1)}%">\n${contextBlocks}\n</grounded_docs>`;
+
+      return {
+        grounded: true,
+        confidence: top.sim,
+        library: top.doc.library,
+        docId: top.doc.id,
+        title: top.doc.title,
+        context: fullContext
+      };
     }
 
-    const topMatches = scored.slice(0, limit);
-    const top = topMatches[0];
+    // -------------------------------------------------------------------------
+    // Fallback: Live Web Meta-Search Grounding (for libraries not yet indexed)
+    // -------------------------------------------------------------------------
+    try {
+      const isTechQuery = /(how|api|rust|typescript|python|go|crate|package|library|install|server|react|vue|svelte|plugin|handler|struct|func)/i.test(cleanQ);
+      if (isTechQuery) {
+        const webResults = await this.searx.search(cleanQ, 3);
+        const validResults = webResults.filter(w => (w.content && w.content.length > 15) || w.url.includes("docs.rs") || w.url.includes("github.com") || w.url.includes("npmjs.com"));
 
-    const contextBlocks = topMatches.map(m => {
-      const snippet = m.doc.content.slice(0, 750).trim();
-      return `### ${m.doc.library} • ${m.doc.title}\nSource: ${m.doc.url || m.doc.path}\nSemantic Match: ${(m.sim * 100).toFixed(1)}%\n\`\`\`markdown\n${snippet}\n\`\`\``;
-    }).join("\n\n");
+        if (validResults.length > 0) {
+          const webBlocks = validResults.slice(0, 2).map(w => {
+            const body = w.content || `Official documentation package: ${w.title}`;
+            return `### ${w.engine || 'Web'} • ${w.title}\nSource: ${w.url}\n\`\`\`markdown\n${body.slice(0, 600)}\n\`\`\``;
+          }).join("\n\n");
 
-    const fullContext = `<grounded_docs intent="${cleanQ.replace(/"/g, "'")}" confidence="${(top.sim * 100).toFixed(1)}%">\n${contextBlocks}\n</grounded_docs>`;
+          const webContext = `<grounded_docs source="live-web" intent="${cleanQ.replace(/"/g, "'")}">\n${webBlocks}\n</grounded_docs>`;
 
-    return {
-      grounded: true,
-      confidence: top.sim,
-      library: top.doc.library,
-      docId: top.doc.id,
-      title: top.doc.title,
-      context: fullContext
-    };
+          return {
+            grounded: true,
+            confidence: 0.85,
+            library: "live-web",
+            title: validResults[0].title,
+            context: webContext
+          };
+        }
+      }
+    } catch {}
+
+    return { grounded: false, confidence: 0 };
   }
 }
