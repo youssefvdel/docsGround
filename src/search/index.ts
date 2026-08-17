@@ -1,6 +1,6 @@
 import { NativeMetaSearch } from "./native.js";
 
-export interface SearxResult {
+export interface SearchResultItem {
   title: string;
   url: string;
   content: string;
@@ -8,50 +8,17 @@ export interface SearxResult {
   score?: number;
 }
 
-export class SearxClient {
-  private customUrl?: string;
+export type SearxResult = SearchResultItem;
 
-  constructor(customUrl?: string) {
-    this.customUrl = customUrl ? customUrl.replace(/\/+$/, "") : undefined;
-  }
-
+export class MetaSearchClient {
   /**
-   * Search method:
-   * 1. If user provided a remote SearxNG endpoint in settings, queries it.
-   * 2. Default: Uses docsGround's built-in native meta-search engine directly (Zero external dependencies).
+   * 100% Native Multi-Engine Search (Bing, DDG Lite, Brave, GitHub, Wikipedia).
+   * Fast, private, zero-dependency.
    */
-  public async search(query: string, limit: number = 8): Promise<SearxResult[]> {
-    if (this.customUrl) {
-      try {
-        const url = new URL(`${this.customUrl}/search`);
-        url.searchParams.set("q", query);
-        url.searchParams.set("format", "json");
-        url.searchParams.set("categories", "general,it");
-
-        const res = await fetch(url.toString(), {
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "docsGround/1.0",
-          },
-          signal: AbortSignal.timeout(4000),
-        });
-
-        if (res.ok) {
-          const data = (await res.json()) as { results?: any[] };
-          if (data.results && data.results.length > 0) {
-            return data.results.slice(0, limit).map((r) => ({
-              title: r.title || "Untitled",
-              url: r.url,
-              content: r.content || "",
-              engine: r.engine || "searxng",
-              score: r.score,
-            }));
-          }
-        }
-      } catch {}
-    }
-
-    // Built-in Native Search Engine (Brave + DuckDuckGo + GitHub)
+  public async search(query: string, limit: number = 8): Promise<SearchResultItem[]> {
     return NativeMetaSearch.search(query, limit);
   }
 }
+
+export const SearxClient = MetaSearchClient;
+export { NativeMetaSearch };

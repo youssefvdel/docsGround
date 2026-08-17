@@ -1,37 +1,11 @@
-import { ConfigManager } from "./config.js";
-
 export class EmbeddingEngine {
   private static localExtractor: any = null;
 
+  /**
+   * Generates high-quality 384-dimensional dense semantic vector embeddings
+   * running 100% locally via Xenova quantized ONNX BGE-Small (zero API calls, private).
+   */
   public static async embed(text: string): Promise<Float32Array> {
-    const config = ConfigManager.get().embedding;
-
-    if (config.provider === "openai" && config.baseUrl) {
-      try {
-        const res = await fetch(`${config.baseUrl.replace(/\/+$/, "")}/embeddings`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.apiKey || "dummy"}`
-          },
-          body: JSON.stringify({
-            model: config.model || "text-embedding-3-small",
-            input: text.slice(0, 8000)
-          }),
-          signal: AbortSignal.timeout(8000)
-        });
-
-        if (res.ok) {
-          const data = (await res.json()) as { data?: { embedding: number[] }[] };
-          if (data.data && data.data[0] && data.data[0].embedding) {
-            return new Float32Array(data.data[0].embedding);
-          }
-        }
-      } catch {
-        // Fallback to local model
-      }
-    }
-
     return this.embedLocal(text);
   }
 

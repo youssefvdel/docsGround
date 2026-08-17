@@ -66,19 +66,20 @@ describe("docsGround End-to-End Suite", () => {
     expect(getRes.status).toBe(200);
     const cfg = await getRes.json() as any;
     expect(cfg.server.port).toBeDefined();
+    expect(cfg.embedding.provider).toBe("local");
 
     // Update config
     const postRes = await fetch(`http://127.0.0.1:${testPort}/api/config`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        embedding: { provider: "openai", baseUrl: "http://127.0.0.1:20128/v1", model: "bge-m3" }
+        crawler: { maxPages: 600, maxDepth: 5 }
       })
     });
     expect(postRes.status).toBe(200);
     const postData = await postRes.json() as any;
-    expect(postData.config.embedding.provider).toBe("openai");
-    expect(postData.config.embedding.model).toBe("bge-m3");
+    expect(postData.config.crawler.maxPages).toBe(600);
+    expect(postData.config.embedding.provider).toBe("local");
   });
 
   it("6. Should render the Web UI HTML dashboard at /", async () => {

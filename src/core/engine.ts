@@ -1,7 +1,7 @@
 import { DocDB } from "../db/index.js";
 import { StealthFetcher } from "../fetcher/index.js";
 import { DocParser } from "../parser/index.js";
-import { SearxClient } from "../search/index.js";
+import { MetaSearchClient, type SearchResultItem } from "../search/index.js";
 import { EmbeddingEngine } from "./embeddings.js";
 import { ConfigManager } from "./config.js";
 import { JobManager } from "./jobs.js";
@@ -10,11 +10,11 @@ import type { IngestSource, SearchResult, DocEntry } from "./types.js";
 
 export class Engine {
   public db: DocDB;
-  public searx: SearxClient;
+  public searx: MetaSearchClient;
 
   constructor(customDbPath?: string) {
     this.db = new DocDB(customDbPath);
-    this.searx = new SearxClient();
+    this.searx = new MetaSearchClient();
   }
 
   /**
@@ -197,7 +197,7 @@ export class Engine {
     if (localResults.length === 0 || isQuestionOrExploratory || !library) {
       try {
         const webResults = await this.searx.search(cleanQ, 6);
-        const mappedWeb: SearchResult[] = webResults.map((w, idx) => ({
+        const mappedWeb: SearchResult[] = webResults.map((w: SearchResultItem, idx: number) => ({
           id: `web:${idx}:${w.url}`,
           library: "live-web",
           version: "live",

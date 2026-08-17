@@ -1390,121 +1390,50 @@ const { useState, useEffect, useRef } = React;
                     {settingsTab === "embedding" && (
                       <div className="flex flex-col gap-4">
                         <div className="border-b border-[#2a2a2a] pb-3">
-                          <h2 className="text-sm font-semibold text-white">Embedding Provider & Vectorizer</h2>
-                          <p className="text-xs text-[#787774] mt-0.5">Configure semantic embedding engine for dense vector search.</p>
+                          <h2 className="text-sm font-semibold text-white">Local ONNX Vector Embedding Engine</h2>
+                          <p className="text-xs text-[#787774] mt-0.5">Built-in quantized Xenova/bge-small-en-v1.5 running 100% offline on CPU.</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-[#9B9B9B] block mb-1">Provider Type</label>
-                            <select
-                              value={config.embedding?.provider || "local"}
-                              onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, provider: e.target.value } })}
-                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                            >
-                              <option value="local">Local ONNX (BGE-Small Quantized - Built-in)</option>
-                              <option value="openai">OpenAI-Compatible Gateway</option>
-                            </select>
+                        <div className="bg-[#1f1f1f] border border-[#2e2e2e] p-4 rounded-lg flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Icons.cpu className="w-4 h-4 text-emerald-400" />
+                              <span className="text-xs font-semibold text-white">Built-in Model: Xenova/bge-small-en-v1.5</span>
+                            </div>
+                            <span className="notion-tag-green font-mono px-2 py-0.5 rounded text-[11px]">384 Dimensions • Quantized</span>
                           </div>
-                          <div>
-                            <label className="text-[#9B9B9B] block mb-1">Active Model Name</label>
-                            <input
-                              type="text"
-                              value={config.embedding?.model || "Xenova/bge-small-en-v1.5"}
-                              onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, model: e.target.value } })}
-                              placeholder="e.g. text-embedding-3-small"
-                              className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                            />
-                          </div>
+                          <p className="text-xs text-[#9B9B9B] leading-relaxed">
+                            Zero external API dependencies. Generates semantic vectors locally with single-threaded WASM execution (~15ms per document chunk).
+                          </p>
                         </div>
-
-                        {config.embedding?.provider === "openai" && (
-                          <div className="flex flex-col gap-4 pt-2 border-t border-[#2a2a2a]">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-[#9B9B9B] block mb-1">Gateway Base URL</label>
-                                <input
-                                  type="text"
-                                  value={config.embedding?.baseUrl || ""}
-                                  onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, baseUrl: e.target.value } })}
-                                  placeholder="http://127.0.0.1:20128/v1"
-                                  className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[#9B9B9B] block mb-1">API Key</label>
-                                <input
-                                  type="password"
-                                  value={config.embedding?.apiKey || ""}
-                                  onChange={(e) => setConfig({ ...config, embedding: { ...config.embedding, apiKey: e.target.value } })}
-                                  placeholder="Optional"
-                                  className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="bg-[#191919] border border-[#2a2a2a] p-3.5 rounded-lg flex flex-col gap-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Icons.cpu className="w-3.5 h-3.5 text-[#529CCA]" />
-                                  <span className="font-medium text-white text-[12px]">Fetch Available Embedding Models</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={handleFetchModels}
-                                  disabled={fetchingModels}
-                                  className="px-3 py-1 rounded bg-[#282828] hover:bg-[#333333] text-white text-xs transition flex items-center gap-1.5"
-                                >
-                                  {fetchingModels ? <i className="fa-solid fa-spinner fa-spin text-[10px]"></i> : <Icons.refresh className="w-3 h-3" />}
-                                  {fetchingModels ? "Fetching..." : "Fetch Models"}
-                                </button>
-                              </div>
-
-                              {fetchError && <div className="text-[11px] font-mono text-red-400">{fetchError}</div>}
-
-                              {fetchedModels.length > 0 && (
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-[11px] text-[#787774]">Select embedding model ({fetchedModels.length}):</label>
-                                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
-                                    {fetchedModels.map((m) => (
-                                      <button
-                                        key={m}
-                                        type="button"
-                                        onClick={() => setConfig({ ...config, embedding: { ...config.embedding, model: m } })}
-                                        className={"px-2 py-0.5 rounded text-[11px] font-mono transition border " +
-                                          (config.embedding?.model === m 
-                                            ? "bg-[#529CCA]/20 text-[#529CCA] border-[#529CCA]/40 font-semibold" 
-                                            : "bg-[#222222] text-[#9B9B9B] border-[#2e2e2e] hover:text-white hover:border-[#444444]")}
-                                      >
-                                        {m}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
 
                     {settingsTab === "search" && (
                       <div className="flex flex-col gap-4">
                         <div className="border-b border-[#2a2a2a] pb-3">
-                          <h2 className="text-sm font-semibold text-white">Live Search Engine Configuration</h2>
-                          <p className="text-xs text-[#787774] mt-0.5">Control web meta-search endpoints for live retrieval.</p>
+                          <h2 className="text-sm font-semibold text-white">Native Stealth Multi-Engine Meta-Search</h2>
+                          <p className="text-xs text-[#787774] mt-0.5">Aggregates live results directly with zero external daemons or Python containers.</p>
                         </div>
-                        <div>
-                          <label className="text-[#9B9B9B] block mb-1">Custom SearxNG URL (Optional)</label>
-                          <input
-                            type="text"
-                            value={config.search?.searxngUrl || ""}
-                            onChange={(e) => setConfig({ ...config, search: { ...config.search, searxngUrl: e.target.value } })}
-                            placeholder="Leave empty to use built-in multi-engine search"
-                            className="w-full bg-[#191919] border border-[#2a2a2a] rounded px-2.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-neutral-500"
-                          />
-                          <span className="text-[11px] text-[#787774] mt-1 block">Default: Built-in DuckDuckGo + Brave Meta-Search (Zero external setup).</span>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-[#1f1f1f] border border-[#2e2e2e] p-3 rounded-lg flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Icons.globe className="w-3.5 h-3.5 text-[#529CCA]" />
+                              <span className="text-xs text-white">Bing RSS + DuckDuckGo Lite</span>
+                            </div>
+                            <span className="notion-tag-blue font-mono px-1.5 py-0.2 rounded text-[10px]">Active</span>
+                          </div>
+                          <div className="bg-[#1f1f1f] border border-[#2e2e2e] p-3 rounded-lg flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Icons.globe className="w-3.5 h-3.5 text-purple-400" />
+                              <span className="text-xs text-white">Brave + GitHub + Wikipedia</span>
+                            </div>
+                            <span className="notion-tag-purple font-mono px-1.5 py-0.2 rounded text-[10px]">Active</span>
+                          </div>
                         </div>
+                        <p className="text-xs text-[#787774]">
+                          Stealth UA rotation, session cookies, and multi-engine voting rank provide fast fallback when queries fall outside the local index.
+                        </p>
                       </div>
                     )}
 

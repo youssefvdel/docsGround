@@ -4,14 +4,8 @@ import { homedir } from "os";
 
 export interface DocsGroundConfig {
   embedding: {
-    provider: "local" | "openai";
-    baseUrl?: string;
-    apiKey?: string;
-    model?: string;
-  };
-  search: {
-    searxngUrl?: string;
-    autoStartEmbedded?: boolean;
+    provider: "local";
+    model: string;
   };
   crawler: {
     maxPages: number;
@@ -26,13 +20,7 @@ export interface DocsGroundConfig {
 const DEFAULT_CONFIG: DocsGroundConfig = {
   embedding: {
     provider: "local",
-    baseUrl: "http://127.0.0.1:20128/v1",
-    apiKey: "",
     model: "Xenova/bge-small-en-v1.5"
-  },
-  search: {
-    searxngUrl: "http://127.0.0.1:8888",
-    autoStartEmbedded: false
   },
   crawler: {
     maxPages: 500,
@@ -63,12 +51,8 @@ export class ConfigManager {
           ...(parsed.crawler || {})
         },
         embedding: {
-          ...DEFAULT_CONFIG.embedding,
-          ...(parsed.embedding || {})
-        },
-        search: {
-          ...DEFAULT_CONFIG.search,
-          ...(parsed.search || {})
+          provider: "local",
+          model: "Xenova/bge-small-en-v1.5"
         },
         server: {
           ...DEFAULT_CONFIG.server,
@@ -90,12 +74,8 @@ export class ConfigManager {
         ...(config.crawler || {})
       },
       embedding: {
-        ...current.embedding,
-        ...(config.embedding || {})
-      },
-      search: {
-        ...current.search,
-        ...(config.search || {})
+        provider: "local",
+        model: "Xenova/bge-small-en-v1.5"
       },
       server: {
         ...current.server,
