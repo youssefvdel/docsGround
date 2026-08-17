@@ -5,6 +5,7 @@ export interface DocEntry {
   title: string;
   path: string;
   content: string;
+  contentHash?: string;
   url?: string;
   headings?: string[];
   symbols?: string[];

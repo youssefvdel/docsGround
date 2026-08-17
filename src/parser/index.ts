@@ -45,6 +45,17 @@ export interface ParsedDoc {
   chunks: DocChunk[];
 }
 
+/**
+ * Unified regex for extracting rich typed code signatures across languages.
+ * Matches: Rust (fn, struct, enum, trait, impl), TS/JS (interface, type, class, enum,
+ * const, let, var, function, async function, import), Python (def, class),
+ * Go (func, type, struct, interface), C (struct, enum, union, typedef),
+ * and common declarations.
+ *
+ * Captures language keyword + name + optional generics/tail for filtering.
+ */
+const SYMBOL_REGEX = /(?:^|\n|\s)(?:\b(async\s+)?function\b|\b(const|let|var|import|export|default|type|interface|enum|class|struct|union|trait|impl|fn|def|func|typedef)\b)\s+([A-Za-z_$][\w$]*)/g;
+
 export class DocParser {
   /**
    * Split long markdown document into coherent heading-aware chunks with parent metadata
@@ -61,11 +72,14 @@ export class DocParser {
       const text = currentLines.join("\n").trim();
       if (text.length > 20) {
         const symbols: string[] = [];
-        const symMatches = text.match(/(?:class|interface|type|enum|function|fn|pub fn|struct|pub struct|trait|pub trait|impl|def)\s+([A-Za-z0-9_]+)/g);
-        if (symMatches) {
-          for (const m of symMatches) {
-            const sym = m.split(/\s+/).pop();
-            if (sym && !symbols.includes(sym)) symbols.push(sym);
+        const symSet = new Set<string>();
+        let symMatch;
+        SYMBOL_REGEX.lastIndex = 0;
+        while ((symMatch = SYMBOL_REGEX.exec(text)) !== null) {
+          const name = symMatch[3];
+          if (name && !symSet.has(name)) {
+            symSet.add(name);
+            symbols.push(name);
           }
         }
 
@@ -126,12 +140,15 @@ export class DocParser {
       }
     }
 
-    // Extract code symbols / definitions
-    const symbolRegex = /(?:class|interface|type|enum|function|fn|pub fn|struct|pub struct|trait|pub trait|impl|def)\s+([A-Za-z0-9_]+)/g;
+    // Extract code symbols / definitions — unified, no dupes
+    const symSet = new Set<string>();
     let match;
-    while ((match = symbolRegex.exec(raw)) !== null) {
-      if (match[1] && !symbols.includes(match[1])) {
-        symbols.push(match[1]);
+    SYMBOL_REGEX.lastIndex = 0;
+    while ((match = SYMBOL_REGEX.exec(raw)) !== null) {
+      const name = match[3];
+      if (name && !symSet.has(name)) {
+        symSet.add(name);
+        symbols.push(name);
       }
     }
 

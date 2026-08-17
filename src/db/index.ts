@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { createHash } from "crypto";
 import { join } from "path";
 import { homedir } from "os";
 import { mkdirSync } from "fs";
@@ -35,6 +36,7 @@ export class DocDB {
         title TEXT NOT NULL,
         path TEXT NOT NULL,
         content TEXT NOT NULL,
+        content_hash TEXT,
         url TEXT,
         headings TEXT,
         symbols TEXT,
@@ -74,17 +76,35 @@ export class DocDB {
     try {
       this.db.exec("ALTER TABLE docs ADD COLUMN embedding BLOB;");
     } catch {}
+    try {
+      this.db.exec("ALTER TABLE docs ADD COLUMN content_hash TEXT;");
+    } catch {}
   }
 
-  public upsertDoc(doc: DocEntry, embedding?: Float32Array): void {
-    const existing = this.db.query("SELECT id FROM docs WHERE id = ?").get(doc.id);
+  /**
+   * Upsert a doc. Returns { skipped: true } when the doc already exists
+   * with the same content_hash and a stored embedding — caller can skip
+   * the ONNX embedding generation step.
+   */
+  public upsertDoc(doc: DocEntry, embedding?: Float32Array): { skipped: boolean } {
+    const contentHash = doc.contentHash || DocDB.hashContent(doc.content);
+    const existing = this.db.query(
+      "SELECT content_hash, embedding FROM docs WHERE id = ? AND library = ?"
+    ).get(doc.id, doc.library) as { content_hash: string | null; embedding: Buffer | null } | null;
+
+    if (existing && existing.content_hash === contentHash && existing.embedding) {
+      // Content + embedding already match — skip expensive re-embed
+      return { skipped: true };
+    }
+
     const embBuffer = embedding ? Buffer.from(embedding.buffer) : null;
 
     if (existing) {
       this.db.query(`
         UPDATE docs SET
           library = ?, version = ?, title = ?, path = ?, content = ?,
-          url = ?, headings = ?, symbols = ?, embedding = coalesce(?, embedding), updated_at = ?
+          content_hash = ?, url = ?, headings = ?, symbols = ?,
+          embedding = coalesce(?, embedding), updated_at = ?
         WHERE id = ?
       `).run(
         doc.library,
@@ -92,6 +112,7 @@ export class DocDB {
         doc.title,
         doc.path,
         doc.content,
+        contentHash,
         doc.url || null,
         doc.headings ? JSON.stringify(doc.headings) : null,
         doc.symbols ? JSON.stringify(doc.symbols) : null,
@@ -101,8 +122,8 @@ export class DocDB {
       );
     } else {
       this.db.query(`
-        INSERT INTO docs (id, library, version, title, path, content, url, headings, symbols, embedding, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO docs (id, library, version, title, path, content, content_hash, url, headings, symbols, embedding, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         doc.id,
         doc.library,
@@ -110,6 +131,7 @@ export class DocDB {
         doc.title,
         doc.path,
         doc.content,
+        contentHash,
         doc.url || null,
         doc.headings ? JSON.stringify(doc.headings) : null,
         doc.symbols ? JSON.stringify(doc.symbols) : null,
@@ -142,6 +164,21 @@ export class DocDB {
         doc_count = (SELECT COUNT(*) FROM docs WHERE library = excluded.name),
         updated_at = excluded.updated_at
     `).run(doc.library, doc.version, JSON.stringify(urlList), Date.now(), JSON.stringify(urlList));
+
+    return { skipped: false };
+  }
+
+  /** SHA-256 hex digest of document content (sync, fast enough for re-index compares). */
+  public static hashContent(content: string): string {
+    return createHash("sha256").update(content, "utf8").digest("hex");
+  }
+
+  /** True when the doc already exists with the same content hash and a stored embedding. */
+  public hasEmbedding(id: string, library: string, contentHash: string): boolean {
+    const r = this.db.query(
+      "SELECT embedding FROM docs WHERE id = ? AND library = ? AND content_hash = ?"
+    ).get(id, library, contentHash) as { embedding: Buffer | null } | null;
+    return !!r?.embedding;
   }
 
   public updateLibrarySourceUrl(name: string, sourceUrl: string): void {
@@ -268,6 +305,7 @@ export class DocDB {
       title: r.title,
       path: r.path,
       content: r.content,
+      contentHash: r.content_hash || undefined,
       url: r.url || undefined,
       headings: r.headings ? JSON.parse(r.headings) : undefined,
       symbols: r.symbols ? JSON.parse(r.symbols) : undefined,

@@ -41,28 +41,33 @@ export class Engine {
 
         for (const file of files) {
           const parsed = DocParser.parseMarkdown(file.content, file.path);
-          
+          const contentHash = DocDB.hashContent(parsed.markdown);
+          const docId = `${source.library}:${version}:${file.path}`;
+
           let embedding: Float32Array | undefined;
-          try {
-            const chunkContext = (parsed.chunks || []).slice(0, 3).map(c => c.content).join("\n\n").slice(0, 1000);
-            const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.headings.join(" | ")}\n\n${chunkContext}`;
-            embedding = await EmbeddingEngine.embed(embedText);
-          } catch {}
+          if (!this.db.hasEmbedding(docId, source.library, contentHash)) {
+            try {
+              const chunkContext = (parsed.chunks || []).slice(0, 3).map(c => c.content).join("\n\n").slice(0, 1000);
+              const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.headings.join(" | ")}\n\n${chunkContext}`;
+              embedding = await EmbeddingEngine.embed(embedText);
+            } catch {}
+          }
 
           const doc: DocEntry = {
-            id: `${source.library}:${version}:${file.path}`,
+            id: docId,
             library: source.library,
             version,
             title: parsed.title,
             path: file.path,
             content: parsed.markdown,
+            contentHash,
             url: file.url,
             headings: parsed.headings,
             symbols: parsed.symbols,
             updatedAt: Date.now()
           };
-          this.db.upsertDoc(doc, embedding);
-          count++;
+          const result = this.db.upsertDoc(doc, embedding);
+          if (!result.skipped) count++;
 
           if (jobId) {
             JobManager.updateProgress(jobId, count, total, `Indexed: ${file.path}`);
@@ -91,29 +96,34 @@ export class Engine {
 
         for (const page of crawledPages) {
           const parsed = DocParser.parseHTML(page.html, page.url);
+          const contentHash = DocDB.hashContent(parsed.markdown);
+          const docId = `${source.library}:${version}:${page.path}`;
 
           let embedding: Float32Array | undefined;
-          try {
-            const chunkContext = (parsed.chunks || []).slice(0, 3).map(c => c.content).join("\n\n").slice(0, 1000);
-            const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.headings.join(" | ")}\n\n${chunkContext}`;
-            embedding = await EmbeddingEngine.embed(embedText);
-          } catch {}
+          if (!this.db.hasEmbedding(docId, source.library, contentHash)) {
+            try {
+              const chunkContext = (parsed.chunks || []).slice(0, 3).map(c => c.content).join("\n\n").slice(0, 1000);
+              const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.headings.join(" | ")}\n\n${chunkContext}`;
+              embedding = await EmbeddingEngine.embed(embedText);
+            } catch {}
+          }
 
           const doc: DocEntry = {
-            id: `${source.library}:${version}:${page.path}`,
+            id: docId,
             library: source.library,
             version,
             title: parsed.title,
             path: page.path,
             content: parsed.markdown,
+            contentHash,
             url: page.url,
             headings: parsed.headings,
             symbols: parsed.symbols,
             updatedAt: Date.now()
           };
 
-          this.db.upsertDoc(doc, embedding);
-          count++;
+          const result = this.db.upsertDoc(doc, embedding);
+          if (!result.skipped) count++;
 
           EventBus.emitDocIndexed({
             library: source.library,
