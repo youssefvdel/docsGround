@@ -215,7 +215,7 @@ export class DocDB {
   }
 
   public getAllDocsWithEmbeddings(library?: string): { doc: DocEntry; embedding: Float32Array | null }[] {
-    let sql = "SELECT * FROM docs";
+    let sql = "SELECT id, library, version, title, path, substr(content, 1, 300) as content_preview, url, headings, symbols, embedding, updated_at FROM docs";
     const params: any[] = [];
     if (library) {
       sql += " WHERE library = ?";
@@ -236,7 +236,7 @@ export class DocDB {
           version: r.version,
           title: r.title,
           path: r.path,
-          content: r.content,
+          content: r.content_preview || "",
           url: r.url || undefined,
           headings: r.headings ? JSON.parse(r.headings) : undefined,
           symbols: r.symbols ? JSON.parse(r.symbols) : undefined,
