@@ -365,55 +365,61 @@ export class Engine {
 
     scored.sort((a, b) => b.sim - a.sim);
 
+    // Accumulate Combined Local + Live Web Grounding Context
+    const combinedBlocks: string[] = [];
+    let topLib = "";
+    let topDocId = "";
+    let topTitle = "";
+    let topConf = 0;
+
+    // 1. Local Indexed Collections
     if (scored.length > 0) {
       const topMatches = scored.slice(0, limit);
-      const top = topMatches[0];
+      topLib = topMatches[0].doc.library;
+      topDocId = topMatches[0].doc.id;
+      topTitle = topMatches[0].doc.title;
+      topConf = topMatches[0].sim;
 
-      const contextBlocks = topMatches.map(m => {
+      topMatches.forEach(m => {
         const snippet = m.doc.content.slice(0, 750).trim();
-        return `### ${m.doc.library} • ${m.doc.title}\nSource: ${m.doc.url || m.doc.path}\nSemantic Match: ${(m.sim * 100).toFixed(1)}%\n\`\`\`markdown\n${snippet}\n\`\`\``;
-      }).join("\n\n");
-
-      const fullContext = `<grounded_docs source="local-index" intent="${cleanQ.replace(/"/g, "'")}" confidence="${(top.sim * 100).toFixed(1)}%">\n${contextBlocks}\n</grounded_docs>`;
-
-      return {
-        grounded: true,
-        confidence: top.sim,
-        library: top.doc.library,
-        docId: top.doc.id,
-        title: top.doc.title,
-        context: fullContext
-      };
+        combinedBlocks.push(`### [Local Index] ${m.doc.library} • ${m.doc.title}\nSource: ${m.doc.url || m.doc.path}\nSemantic Match: ${(m.sim * 100).toFixed(1)}%\n\`\`\`markdown\n${snippet}\n\`\`\``);
+      });
     }
 
-    // -------------------------------------------------------------------------
-    // Fallback: Live Web Meta-Search Grounding (for libraries not yet indexed)
-    // -------------------------------------------------------------------------
+    // 2. Live Web Meta-Search (crates.io / npm / docs.rs / official web)
     try {
-      const isTechQuery = /(how|api|rust|typescript|python|go|crate|package|library|install|server|react|vue|svelte|plugin|handler|struct|func)/i.test(cleanQ);
+      const isTechQuery = /(how|api|rust|typescript|python|go|crate|package|library|install|server|react|vue|svelte|plugin|handler|struct|func|build|create|make|write)/i.test(cleanQ);
       if (isTechQuery) {
         const webResults = await this.searx.search(cleanQ, 3);
-        const validResults = webResults.filter(w => (w.content && w.content.length > 15) || w.url.includes("docs.rs") || w.url.includes("github.com") || w.url.includes("npmjs.com"));
+        const validResults = webResults.filter(w => (w.content && w.content.length > 15) || w.url.includes("docs.rs") || w.url.includes("github.com") || w.url.includes("npmjs.com") || w.url.includes("crates.io"));
 
         if (validResults.length > 0) {
-          const webBlocks = validResults.slice(0, 2).map(w => {
-            const body = w.content || `Official documentation package: ${w.title}`;
-            return `### ${w.engine || 'Web'} • ${w.title}\nSource: ${w.url}\n\`\`\`markdown\n${body.slice(0, 600)}\n\`\`\``;
-          }).join("\n\n");
-
-          const webContext = `<grounded_docs source="live-web" intent="${cleanQ.replace(/"/g, "'")}">\n${webBlocks}\n</grounded_docs>`;
-
-          return {
-            grounded: true,
-            confidence: 0.85,
-            library: "live-web",
-            title: validResults[0].title,
-            context: webContext
-          };
+          if (!topLib) {
+            topLib = "live-web";
+            topTitle = validResults[0].title;
+            topConf = 0.85;
+          }
+          validResults.slice(0, 2).forEach(w => {
+            const body = w.content || `Official registry package: ${w.title}`;
+            combinedBlocks.push(`### [Live Ecosystem: ${w.engine || 'Web'}] ${w.title}\nSource: ${w.url}\n\`\`\`markdown\n${body.slice(0, 600)}\n\`\`\``);
+          });
         }
       }
     } catch {}
 
-    return { grounded: false, confidence: 0 };
+    if (combinedBlocks.length === 0) {
+      return { grounded: false, confidence: 0 };
+    }
+
+    const fullContext = `<grounded_docs intent="${cleanQ.replace(/"/g, "'")}" confidence="${(topConf * 100).toFixed(1)}%">\n${combinedBlocks.join("\n\n")}\n</grounded_docs>`;
+
+    return {
+      grounded: true,
+      confidence: topConf,
+      library: topLib,
+      docId: topDocId,
+      title: topTitle,
+      context: fullContext
+    };
   }
 }
