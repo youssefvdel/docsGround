@@ -569,6 +569,7 @@ function App() {
   const [latency, setLatency] = useState(null);
   const [source, setSource] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState(0);
 
   const [ingestOpen, setIngestOpen] = useState(false);
   const [ingestLib, setIngestLib] = useState("");
@@ -1418,37 +1419,82 @@ function App() {
       {/* QUICK FIND / SEARCH MODAL */}
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/75 backdrop-blur-sm animate-fade-in" onClick={() => setSearchOpen(false)}>
-          <div className="bg-[#121317] border border-[#262831] w-[620px] rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div 
+            className="bg-[#121317] border border-[#262831] w-[640px] rounded-2xl shadow-2xl overflow-hidden flex flex-col" 
+            onClick={e => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setSearchSelectedIndex(prev => Math.min(results.length - 1, prev + 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setSearchSelectedIndex(prev => Math.max(0, prev - 1));
+              } else if (e.key === "Enter" && results[searchSelectedIndex]) {
+                e.preventDefault();
+                const r = results[searchSelectedIndex];
+                handleSelectSearchResult(r.id, r.library, r.library === "live-web", r.url);
+              } else if (e.key === "Escape") {
+                setSearchOpen(false);
+              }
+            }}
+          >
             <form onSubmit={handleSearch} className="flex items-center px-4 py-3.5 border-b border-[#20222A] gap-3">
               <Icons.search className="w-4 h-4 text-[#71717A]" />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search symbol, concept, or live question..."
+                onChange={e => {
+                  setQuery(e.target.value);
+                  setSearchSelectedIndex(0);
+                }}
+                placeholder="Search symbol, concept, crates.io, npm..."
                 className="bg-transparent text-sm text-white placeholder-[#71717A] focus:outline-none flex-1 font-mono"
               />
-              {loading && <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>}
+              {loading ? (
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping"></span>
+              ) : (
+                <kbd className="text-[10px] font-mono text-[#71717A] border border-[#2B2E38] px-1.5 py-0.5 rounded bg-[#0A0B0D]">ESC to close</kbd>
+              )}
             </form>
 
-            <div className="max-h-[380px] overflow-y-auto p-2 divide-y divide-[#1C1E25]">
-              {results.map((r, i) => (
-                <div 
-                  key={i}
-                  onClick={() => handleSelectSearchResult(r.id, r.library, r.library === "live-web", r.url)}
-                  className="p-3 hover:bg-[#191B22] rounded-xl cursor-pointer transition flex flex-col gap-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">{r.title}</span>
-                    <span className={"notion-tag font-mono " + getTagColorClass(r.library)}>{r.library}</span>
+            <div className="max-h-[420px] overflow-y-auto p-2 divide-y divide-[#1C1E25]">
+              {results.map((r, i) => {
+                const isSelected = i === searchSelectedIndex;
+                return (
+                  <div 
+                    key={i}
+                    onMouseEnter={() => setSearchSelectedIndex(i)}
+                    onClick={() => handleSelectSearchResult(r.id, r.library, r.library === "live-web", r.url)}
+                    className={"p-3 rounded-xl cursor-pointer transition flex flex-col gap-1.5 " +
+                      (isSelected ? "bg-[#1C1F28] border border-[#2C3242] shadow-md" : "hover:bg-[#16181F]")}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="text-xs font-semibold text-white truncate">{r.title}</span>
+                        {r.engine && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#101216] border border-[#242833] text-[#38BDF8]">
+                            {r.engine}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {r.score && (
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-800/40 px-1.5 py-0.5 rounded">
+                            {(r.score * 100).toFixed(0)}% match
+                          </span>
+                        )}
+                        <span className={"notion-tag font-mono " + getTagColorClass(r.library)}>{r.library}</span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-[#A1A1AA] line-clamp-2 leading-relaxed font-sans">{r.snippet}</p>
                   </div>
-                  <p className="text-[11px] text-[#A1A1AA] line-clamp-2 leading-relaxed">{r.snippet}</p>
-                </div>
-              ))}
+                );
+              })}
               {results.length === 0 && !loading && (
-                <div className="p-6 text-center text-xs text-[#71717A] font-mono">
-                  Type a search query and press Enter.
+                <div className="p-8 text-center text-xs text-[#71717A] font-mono flex flex-col gap-1.5 items-center">
+                  <span>Type a concept, symbol, or question and press Enter.</span>
+                  <span className="text-[10px] text-[#52525B]">Supports offline vector embeddings + live crates.io / npm / multi-engine fallback.</span>
                 </div>
               )}
             </div>
