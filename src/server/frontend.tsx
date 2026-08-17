@@ -56,6 +56,53 @@ function CustomCheckbox({ id, checked, onChange, label, description }) {
   );
 }
 
+function CustomNumberStepper({ value, onChange, min = 1, max = 10000, step = 1, unit = "" }) {
+  const handleDecrement = (e) => {
+    e.preventDefault();
+    onChange(Math.max(min, (Number(value) || min) - step));
+  };
+
+  const handleIncrement = (e) => {
+    e.preventDefault();
+    onChange(Math.min(max, (Number(value) || min) + step));
+  };
+
+  return (
+    <div className="flex items-center bg-[#0C0D0F] border border-[#22252D] hover:border-[#333845] focus-within:border-emerald-500 rounded-xl overflow-hidden transition shadow-inner">
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || min)}
+        className="w-full bg-transparent px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+      />
+      {unit && <span className="text-[11px] font-mono text-[#71717A] pr-2 select-none">{unit}</span>}
+      <div className="flex flex-col border-l border-[#22252D] bg-[#14161A] flex-shrink-0">
+        <button
+          type="button"
+          onClick={handleIncrement}
+          className="px-2.5 py-1 hover:bg-[#20232B] text-[#A1A1AA] hover:text-emerald-400 border-b border-[#22252D] transition flex items-center justify-center"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={handleDecrement}
+          className="px-2.5 py-1 hover:bg-[#20232B] text-[#A1A1AA] hover:text-emerald-400 transition flex items-center justify-center"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Obsidian Force-Directed Physics Graph View (Spring + Repulsion + Drift)
 // -----------------------------------------------------------------------------
@@ -1314,21 +1361,25 @@ function App() {
                     <span className="text-sm font-semibold text-white">Crawler Ingestion Limits</span>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[#A1A1AA] block mb-1 text-xs">Default Max Pages</label>
-                        <input
-                          type="number"
+                        <label className="text-[#A1A1AA] block mb-1.5 text-xs font-medium">Default Max Pages</label>
+                        <CustomNumberStepper
+                          min={10}
+                          max={10000}
+                          step={100}
+                          unit="pages"
                           value={config.crawler?.maxPages || 500}
-                          onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxPages: Number(e.target.value) } })}
-                          className="w-full bg-[#0C0D0F] border border-[#22252D] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                          onChange={(val) => setConfig({ ...config, crawler: { ...config.crawler, maxPages: val } })}
                         />
                       </div>
                       <div>
-                        <label className="text-[#A1A1AA] block mb-1 text-xs">Default Max Crawl Depth</label>
-                        <input
-                          type="number"
+                        <label className="text-[#A1A1AA] block mb-1.5 text-xs font-medium">Default Max Crawl Depth</label>
+                        <CustomNumberStepper
+                          min={1}
+                          max={20}
+                          step={1}
+                          unit="levels"
                           value={config.crawler?.maxDepth || 4}
-                          onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxDepth: Number(e.target.value) } })}
-                          className="w-full bg-[#0C0D0F] border border-[#22252D] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                          onChange={(val) => setConfig({ ...config, crawler: { ...config.crawler, maxDepth: val } })}
                         />
                       </div>
                     </div>
