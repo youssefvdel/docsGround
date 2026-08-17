@@ -342,11 +342,20 @@ function getWebUiHtml(): string {
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script>
     window.onerror = function(msg, url, line, col, error) {
+      if (typeof msg === "string" && (msg.includes("ResizeObserver loop") || msg.includes("ResizeObserver loop completed"))) {
+        return true; // Suppress benign browser ResizeObserver notification
+      }
       var root = document.getElementById("root");
       if (root) {
         root.innerHTML = '<div style="color:#ff6b6b;padding:30px;font-family:monospace;background:#101216;border:1px solid #ff6b6b;margin:20px;border-radius:12px;"><h3>UI Runtime Error</h3><p>' + msg + '</p><p>Line: ' + line + ':' + col + '</p><pre style="margin-top:10px;color:#aaa;">' + (error ? error.stack : '') + '</pre></div>';
       }
     };
+    window.addEventListener("error", function(e) {
+      if (e.message && (e.message.includes("ResizeObserver loop") || e.message.includes("ResizeObserver loop completed"))) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    });
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

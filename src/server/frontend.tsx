@@ -274,7 +274,14 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
       }
     };
 
-    const ro = new ResizeObserver(() => updateSize());
+    let resizeRafId: number | null = null;
+    const ro = new ResizeObserver(() => {
+      if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
+      resizeRafId = requestAnimationFrame(() => {
+        updateSize();
+        resizeRafId = null;
+      });
+    });
     ro.observe(container);
     updateSize();
 
