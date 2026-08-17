@@ -256,21 +256,23 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
     const updateSize = () => {
       if (!container || !canvas) return;
       const rect = container.getBoundingClientRect();
-      if (rect.width > 50 && rect.height > 50) {
-        width = rect.width;
-        heightPx = rect.height;
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = width * dpr;
-        canvas.height = heightPx * dpr;
-        canvas.style.width = width + "px";
-        canvas.style.height = heightPx + "px";
-        ctx.resetTransform();
-        ctx.scale(dpr, dpr);
+      const w = rect.width > 50 ? rect.width : (container.clientWidth || window.innerWidth - 300);
+      const h = rect.height > 50 ? rect.height : (container.clientHeight || window.innerHeight - 200);
 
-        if (!hasCentered) {
-          panRef.current = { x: width / 2, y: heightPx / 2 };
-          hasCentered = true;
-        }
+      width = Math.max(w, 400);
+      heightPx = Math.max(h, 400);
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = heightPx * dpr;
+      canvas.style.width = width + "px";
+      canvas.style.height = heightPx + "px";
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+
+      if (!hasCentered) {
+        panRef.current = { x: width / 2, y: heightPx / 2 };
+        hasCentered = true;
       }
     };
 
@@ -1295,8 +1297,8 @@ function App() {
 
           {/* VIEW: FULL SCREEN GRAPH UNIVERSE */}
           {view === "graph" && (
-            <main className="flex-1 flex flex-col h-full bg-[#0A0B0D] p-6 gap-4">
-              <div className="flex items-center justify-between pb-2 border-b border-[#1A1C22]">
+            <main className="flex-1 flex flex-col h-full min-h-0 bg-[#0A0B0D] p-6 gap-4 overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#1A1C22] flex-shrink-0">
                 <div className="flex items-center gap-2 font-mono text-xs text-white">
                   <Icons.network className="w-4 h-4 text-emerald-400" />
                   <span className="font-bold text-sm">Full-Scale Knowledge Universe</span>
@@ -1310,7 +1312,7 @@ function App() {
                 </button>
               </div>
 
-              <div className="flex-1 w-full h-full">
+              <div className="flex-1 w-full h-full min-h-[500px] relative">
                 <ObsidianGraphCanvas
                   topology={topology}
                   activeGlowIds={activeGlowIds}
