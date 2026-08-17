@@ -249,23 +249,34 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
-    let width = container.clientWidth;
-    let heightPx = container.clientHeight;
+    let width = container.clientWidth || 800;
+    let heightPx = container.clientHeight || 520;
+    let hasCentered = false;
 
-    const resize = () => {
-      width = container.clientWidth;
-      heightPx = container.clientHeight;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = width * dpr;
-      canvas.height = heightPx * dpr;
-      canvas.style.width = width + "px";
-      canvas.style.height = heightPx + "px";
-      ctx.scale(dpr, dpr);
+    const updateSize = () => {
+      if (!container || !canvas) return;
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 50 && rect.height > 50) {
+        width = rect.width;
+        heightPx = rect.height;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = width * dpr;
+        canvas.height = heightPx * dpr;
+        canvas.style.width = width + "px";
+        canvas.style.height = heightPx + "px";
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+
+        if (!hasCentered) {
+          panRef.current = { x: width / 2, y: heightPx / 2 };
+          hasCentered = true;
+        }
+      }
     };
-    resize();
 
-    // Center on mount
-    panRef.current = { x: width / 2, y: heightPx / 2 };
+    const ro = new ResizeObserver(() => updateSize());
+    ro.observe(container);
+    updateSize();
 
     const onWheel = (e) => {
       e.preventDefault();
@@ -349,12 +360,12 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
       // -------------------------------------------------------------
       // DRAW CANVAS FRAME
       // -------------------------------------------------------------
+      const dpr = window.devicePixelRatio || 1;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = "#0A0B0D";
-      ctx.fillRect(0, 0, width, heightPx);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.save();
-      ctx.translate(pan.x, pan.y);
-      ctx.scale(zoom, zoom);
+      ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, pan.x * dpr, pan.y * dpr);
 
       // Draw Grid Dots
       ctx.fillStyle = "#1C1E24";
@@ -441,7 +452,6 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
         }
       }
 
-      ctx.restore();
       animFrameRef.current = requestAnimationFrame(render);
     };
 
