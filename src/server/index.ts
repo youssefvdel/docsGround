@@ -276,7 +276,7 @@ function getWebUiHtml(): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
-  <title>docsGround</title>
+  <title>docsGround • Autonomous Knowledge Mesh</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -286,26 +286,22 @@ function getWebUiHtml(): string {
       theme: {
         extend: {
           colors: {
-            notion: {
-              bg: '#191919',
-              sidebar: '#202020',
-              card: '#202020',
-              hover: '#282828',
-              active: '#303030',
-              border: '#2e2e2e',
-              text: '#D4D4D4',
-              textMuted: '#848484',
-              heading: '#FFFFFF',
-              callout: '#222222',
-              blue: '#529CCA',
-              green: '#4DAB9A',
-              purple: '#9A6DD7',
-              orange: '#FF7347',
-              gray: '#9B9A97'
+            obsidian: {
+              bg: '#08090B',
+              surface: '#0E1015',
+              card: '#12141A',
+              hover: '#181B22',
+              active: '#1E222B',
+              border: '#1F232D',
+              borderHover: '#2E3442',
+              emerald: '#10B981',
+              cyan: '#38BDF8',
+              purple: '#A855F7',
+              amber: '#F59E0B'
             }
           },
           fontFamily: {
-            sans: ['Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif],
+            sans: ['Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif],
             mono: ['JetBrains Mono', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
           }
         }
@@ -318,18 +314,18 @@ function getWebUiHtml(): string {
     window.onerror = function(msg, url, line, col, error) {
       var root = document.getElementById("root");
       if (root) {
-        root.innerHTML = '<div style="color:#ff6b6b;padding:30px;font-family:monospace;background:#1e1e1e;border:1px solid #ff6b6b;margin:20px;border-radius:8px;"><h3>UI Runtime Error</h3><p>' + msg + '</p><p>Line: ' + line + ':' + col + '</p><pre style="margin-top:10px;color:#aaa;">' + (error ? error.stack : '') + '</pre></div>';
+        root.innerHTML = '<div style="color:#ff6b6b;padding:30px;font-family:monospace;background:#101216;border:1px solid #ff6b6b;margin:20px;border-radius:12px;"><h3>UI Runtime Error</h3><p>' + msg + '</p><p>Line: ' + line + ':' + col + '</p><pre style="margin-top:10px;color:#aaa;">' + (error ? error.stack : '') + '</pre></div>';
       }
     };
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      background-color: #191919;
-      color: #D4D4D4;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #08090B;
+      color: #E4E4E7;
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
       margin: 0;
       padding: 0;
       -webkit-font-smoothing: antialiased;
@@ -338,34 +334,34 @@ function getWebUiHtml(): string {
     .select-text { user-select: text; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3e3e3e; }
-    .notion-tag-blue { background: rgba(82, 156, 202, 0.15); color: #529CCA; }
-    .notion-tag-green { background: rgba(77, 171, 154, 0.15); color: #4DAB9A; }
-    .notion-tag-purple { background: rgba(154, 109, 215, 0.15); color: #9A6DD7; }
-    .notion-tag-orange { background: rgba(255, 115, 71, 0.15); color: #FF7347; }
-    .notion-tag-gray { background: rgba(155, 154, 151, 0.15); color: #9B9A97; }
-    .notion-modal-overlay { background-color: rgba(15, 15, 15, 0.7); backdrop-filter: blur(2px); }
+    ::-webkit-scrollbar-thumb { background: #222631; border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: #323846; }
     
-    .notion-markdown { line-height: 1.65; color: #d4d4d4; }
-    .notion-markdown h1 { font-size: 1.8rem; font-weight: 700; color: #ffffff; margin-top: 1.5rem; margin-bottom: 0.8rem; border-bottom: 1px solid #2e2e2e; padding-bottom: 0.3rem; }
-    .notion-markdown h2 { font-size: 1.35rem; font-weight: 600; color: #ffffff; margin-top: 1.3rem; margin-bottom: 0.6rem; border-bottom: 1px solid #282828; padding-bottom: 0.2rem; }
-    .notion-markdown h3 { font-size: 1.1rem; font-weight: 600; color: #f0f0f0; margin-top: 1.1rem; margin-bottom: 0.4rem; }
-    .notion-markdown p { margin-bottom: 0.8rem; color: #d4d4d4; font-size: 13.5px; }
-    .notion-markdown code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); color: #EB5757; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
-    .notion-markdown pre { background: #111111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 12px 14px; margin: 12px 0; overflow-x: auto; }
-    .notion-markdown pre code { background: transparent; color: #e2e8f0; padding: 0; font-size: 12px; }
-    .notion-markdown ul { list-style-type: disc; padding-left: 1.4rem; margin-bottom: 0.8rem; font-size: 13.5px; }
-    .notion-markdown ol { list-style-type: decimal; padding-left: 1.4rem; margin-bottom: 0.8rem; font-size: 13.5px; }
-    .notion-markdown li { margin-bottom: 0.25rem; }
-    .notion-markdown a { color: #529CCA; text-decoration: underline; text-underline-offset: 3px; }
-    .notion-markdown blockquote { border-left: 3px solid #529CCA; padding-left: 12px; color: #9b9a97; margin: 12px 0; font-style: italic; }
-    .notion-markdown table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
-    .notion-markdown th { background: #222222; border: 1px solid #2e2e2e; padding: 6px 10px; text-align: left; color: #ffffff; }
-    .notion-markdown td { border: 1px solid #2a2a2a; padding: 6px 10px; }
+    .notion-tag-blue { background: rgba(56, 189, 248, 0.12); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.25); }
+    .notion-tag-green { background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .notion-tag-purple { background: rgba(168, 85, 247, 0.12); color: #A855F7; border: 1px solid rgba(168, 85, 247, 0.25); }
+    .notion-tag-orange { background: rgba(249, 115, 22, 0.12); color: #F97316; border: 1px solid rgba(249, 115, 22, 0.25); }
+    .notion-tag-gray { background: rgba(113, 113, 122, 0.12); color: #A1A1AA; border: 1px solid rgba(113, 113, 122, 0.25); }
+    
+    .notion-markdown { line-height: 1.7; color: #D4D4D8; }
+    .notion-markdown h1 { font-size: 1.75rem; font-weight: 700; color: #FFFFFF; margin-top: 1.8rem; margin-bottom: 0.8rem; border-bottom: 1px solid #1F232D; padding-bottom: 0.4rem; letter-spacing: -0.02em; }
+    .notion-markdown h2 { font-size: 1.3rem; font-weight: 600; color: #F4F4F5; margin-top: 1.5rem; margin-bottom: 0.6rem; border-bottom: 1px solid #181B22; padding-bottom: 0.3rem; letter-spacing: -0.01em; }
+    .notion-markdown h3 { font-size: 1.1rem; font-weight: 600; color: #E4E4E7; margin-top: 1.2rem; margin-bottom: 0.4rem; }
+    .notion-markdown p { margin-bottom: 0.9rem; color: #D4D4D8; font-size: 13.5px; }
+    .notion-markdown code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.06); color: #38BDF8; padding: 2px 6px; border-radius: 6px; font-size: 12px; border: 1px solid rgba(255,255,255,0.08); }
+    .notion-markdown pre { background: #0A0B0E; border: 1px solid #1E222B; border-radius: 10px; padding: 14px 16px; margin: 14px 0; overflow-x: auto; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); }
+    .notion-markdown pre code { background: transparent; color: #E4E4E7; padding: 0; font-size: 12px; border: none; }
+    .notion-markdown ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.9rem; font-size: 13.5px; }
+    .notion-markdown ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.9rem; font-size: 13.5px; }
+    .notion-markdown li { margin-bottom: 0.3rem; }
+    .notion-markdown a { color: #38BDF8; text-decoration: underline; text-underline-offset: 3px; }
+    .notion-markdown blockquote { border-left: 3px solid #10B981; padding-left: 14px; color: #A1A1AA; margin: 14px 0; font-style: italic; background: rgba(16, 185, 129, 0.04); padding-top: 4px; padding-bottom: 4px; border-radius: 0 8px 8px 0; }
+    .notion-markdown table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .notion-markdown th { background: #12141A; border: 1px solid #1F232D; padding: 8px 12px; text-align: left; color: #FFFFFF; font-weight: 600; }
+    .notion-markdown td { border: 1px solid #1A1D25; padding: 8px 12px; }
   </style>
 </head>
-<body class="h-screen w-screen overflow-hidden bg-[#191919] text-[#D4D4D4] font-sans text-[13px]">
+<body class="h-screen w-screen overflow-hidden bg-[#08090B] text-[#E4E4E7] font-sans text-[13px]">
   <div id="root" class="h-full w-full flex"></div>
   <script src="/app.js"></script>
 </body>
