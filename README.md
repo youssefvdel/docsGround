@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="./assets/banner.png" alt="docsGround Banner" width="100%" />
+  <img src="./assets/banner.svg" alt="docsGround Banner" width="100%" />
 
   <br/><br/>
 
-  <img src="./assets/logo.svg" alt="docsGround" width="100" height="100" />
+  <img src="./assets/logo.svg" alt="docsGround" width="90" height="90" />
   <h1>docsGround</h1>
   <p><strong>Universal Documentation Grounding & High-Speed Search Engine for AI Coding Agents</strong></p>
   <p>

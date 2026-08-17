@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" fill="none">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E1015" />
+      <stop offset="100%" stop-color="#07080B" />
+    </linearGradient>
+
+    <!-- Neon Glow Filter -->
+    <filter id="neon-glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Gradient Accents -->
+    <linearGradient id="cyan-mint" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+
+    <linearGradient id="ui-card-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#12141C" />
+      <stop offset="100%" stop-color="#0B0C10" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Card Frame -->
+  <rect x="15" y="15" width="1170" height="370" rx="24" fill="url(#bg-grad)" stroke="#1F232D" stroke-width="1.5"/>
+
+  <!-- Subtle Background Grid Dots -->
+  <g opacity="0.35">
+    <circle cx="80" cy="80" r="1" fill="#2D3342"/>
+    <circle cx="160" cy="80" r="1" fill="#2D3342"/>
+    <circle cx="240" cy="80" r="1" fill="#2D3342"/>
+    <circle cx="80" cy="160" r="1" fill="#2D3342"/>
+    <circle cx="80" cy="240" r="1" fill="#2D3342"/>
+    <circle cx="80" cy="320" r="1" fill="#2D3342"/>
+    <circle cx="1120" cy="80" r="1" fill="#2D3342"/>
+    <circle cx="1120" cy="160" r="1" fill="#2D3342"/>
+    <circle cx="1120" cy="240" r="1" fill="#2D3342"/>
+    <circle cx="1120" cy="320" r="1" fill="#2D3342"/>
+  </g>
+
+  <!-- RIGHT SIDE: High-Tech UI & Neural Network Graphics -->
+  <g transform="translate(680, 50)" opacity="0.95">
+    <!-- UI Window Card Backplate -->
+    <rect x="40" y="20" width="420" height="260" rx="18" fill="url(#ui-card-grad)" stroke="#222634" stroke-width="1.2"/>
+    
+    <!-- Window Titlebar -->
+    <line x1="40" y1="62" x2="460" y2="62" stroke="#1C202C" stroke-width="1"/>
+    <circle cx="68" cy="42" r="4.5" fill="#EF4444" opacity="0.8"/>
+    <circle cx="86" cy="42" r="4.5" fill="#F59E0B" opacity="0.8"/>
+    <circle cx="104" cy="42" r="4.5" fill="#10B981" opacity="0.8"/>
+    
+    <!-- Search Bar Skeleton -->
+    <rect x="130" y="32" width="180" height="20" rx="6" fill="#171A24" stroke="#252A38" stroke-width="1"/>
+    
+    <!-- Skeleton Content Lines -->
+    <rect x="68" y="85" width="140" height="10" rx="4" fill="#1D2230"/>
+    <rect x="68" y="105" width="220" height="8" rx="4" fill="#161922"/>
+    <rect x="68" y="123" width="180" height="8" rx="4" fill="#161922"/>
+
+    <rect x="68" y="160" width="110" height="10" rx="4" fill="#1D2230"/>
+    <rect x="68" y="180" width="260" height="8" rx="4" fill="#161922"/>
+    <rect x="68" y="198" width="200" height="8" rx="4" fill="#161922"/>
+    
+    <!-- Interactive Neural Mesh Overlay on Right -->
+    <g transform="translate(180, 30)">
+      <!-- Neural Edges -->
+      <line x1="120" y1="60" x2="190" y2="30" stroke="#00F5D4" stroke-width="1.4" opacity="0.4" stroke-dasharray="3 3"/>
+      <line x1="120" y1="60" x2="160" y2="130" stroke="#00F5D4" stroke-width="1.4" opacity="0.4"/>
+      <line x1="190" y1="30" x2="250" y2="70" stroke="#38BDF8" stroke-width="1.4" opacity="0.5"/>
+      <line x1="160" y1="130" x2="250" y2="70" stroke="#00F5D4" stroke-width="1.4" opacity="0.45"/>
+      <line x1="160" y1="130" x2="220" y2="190" stroke="#34D399" stroke-width="1.4" opacity="0.4"/>
+      <line x1="250" y1="70" x2="270" y2="150" stroke="#00F5D4" stroke-width="1.4" opacity="0.4"/>
+      <line x1="220" y1="190" x2="270" y2="150" stroke="#38BDF8" stroke-width="1.4" opacity="0.45"/>
+
+      <!-- Neural Nodes with Halo Glow -->
+      <circle cx="120" cy="60" r="5" fill="#00F5D4" filter="url(#soft-glow)"/>
+      <circle cx="190" cy="30" r="4" fill="#38BDF8" filter="url(#soft-glow)"/>
+      <circle cx="160" cy="130" r="6" fill="#34D399" filter="url(#soft-glow)"/>
+      <circle cx="250" cy="70" r="7" fill="#00F5D4" filter="url(#neon-glow-cyan)"/>
+      <circle cx="220" cy="190" r="4.5" fill="#38BDF8" filter="url(#soft-glow)"/>
+      <circle cx="270" cy="150" r="5.5" fill="#34D399" filter="url(#soft-glow)"/>
+
+      <!-- Pulse Halo Rings -->
+      <circle cx="250" cy="70" r="15" fill="none" stroke="#00F5D4" stroke-width="1" opacity="0.5"/>
+      <circle cx="160" cy="130" r="12" fill="none" stroke="#34D399" stroke-width="1" opacity="0.4"/>
+    </g>
+  </g>
+
+  <!-- LEFT SIDE: Glowing Document + Lightning Icon -->
+  <g transform="translate(100, 110)">
+    <!-- Ambient Neon Backlight Glow -->
+    <rect x="-10" y="-10" width="180" height="200" rx="28" fill="#00F5D4" opacity="0.06" filter="url(#neon-glow-cyan)"/>
+    
+    <!-- Outer Document Sheet with Folded Corner -->
+    <path d="M 24 0 
+             L 100 0 
+             L 144 44 
+             L 144 160 
+             A 18 18 0 0 1 126 178 
+             L 24 178 
+             A 18 18 0 0 1 6 160 
+             L 6 18 
+             A 18 18 0 0 1 24 0 Z" 
+          fill="#0F1219" 
+          stroke="url(#cyan-mint)" 
+          stroke-width="3" 
+          stroke-linejoin="round"
+          filter="url(#neon-glow-cyan)"/>
+
+    <!-- Document Top-Right Corner Fold -->
+    <path d="M 100 0 L 100 44 L 144 44 Z" 
+          fill="#171C26" 
+          stroke="url(#cyan-mint)" 
+          stroke-width="2.5" 
+          stroke-linejoin="round"/>
+
+    <!-- Stylized Central Lightning Bolt -->
+    <path d="M 82 45 
+             L 54 94 
+             L 74 94 
+             L 64 135 
+             L 102 82 
+             L 80 82 Z" 
+          fill="url(#cyan-mint)" 
+          stroke="#00F5D4" 
+          stroke-width="1.8" 
+          stroke-linejoin="round"
+          filter="url(#neon-glow-cyan)"/>
+  </g>
+
+  <!-- CENTER TYPOGRAPHY -->
+  <g transform="translate(300, 175)">
+    <!-- Primary Title -->
+    <text x="0" y="24" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" letter-spacing="-0.5">
+      <tspan fill="#FFFFFF" font-weight="800">docsGround</tspan>
+      <tspan fill="#475569" font-weight="400">  •  </tspan>
+      <tspan fill="#38BDF8" font-weight="600">Autonomous</tspan>
+    </text>
+
+    <!-- Subtitle / Tagline -->
+    <text x="0" y="70" fill="#94A3B8" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="500" letter-spacing="0.4">
+      Documentation Grounding
+    </text>
+  </g>
+</svg>
