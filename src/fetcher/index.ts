@@ -82,8 +82,8 @@ export class StealthFetcher {
    */
   public static async crawlWebDocs(
     rootUrl: string,
-    maxPages: number = 500,
-    maxDepth: number = 4,
+    maxPages: number = 0, // 0 = Unlimited
+    maxDepth: number = 0, // 0 = Unlimited
     onPageFound?: (count: number, currentUrl: string) => void
   ): Promise<{ url: string; html: string; path: string }[]> {
     const originUrl = new URL(rootUrl);

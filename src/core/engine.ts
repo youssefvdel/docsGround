@@ -27,8 +27,8 @@ export class Engine {
   ): Promise<{ indexed: number; library: string }> {
     const version = source.version || "latest";
     const cfg = ConfigManager.get();
-    const maxPages = crawlerOpts?.maxPages || cfg.crawler?.maxPages || 500;
-    const maxDepth = crawlerOpts?.maxDepth || cfg.crawler?.maxDepth || 4;
+    const maxPages = crawlerOpts?.maxPages !== undefined ? crawlerOpts.maxPages : (cfg.crawler?.maxPages ?? 0);
+    const maxDepth = crawlerOpts?.maxDepth !== undefined ? crawlerOpts.maxDepth : (cfg.crawler?.maxDepth ?? 0);
 
     try {
       if (source.type === "git" || source.target.includes("github.com")) {
