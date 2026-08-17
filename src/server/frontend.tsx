@@ -792,17 +792,24 @@ function App() {
     const cleanName = editNewName.trim().toLowerCase();
     if (!cleanName) return;
 
-    setReindexing(true);
+    const urls = editUrlsText.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
+    const oldName = editLibName;
+    const isClean = cleanReindex;
+    const maxPages = editMaxPages;
+    const maxDepth = editMaxDepth;
+
+    // Immediately close modal so user can work / trigger other jobs
+    setEditOpen(false);
+    showToast(`Started reindexing "${cleanName}" in background`, "success");
+
     try {
-      if (cleanName !== editLibName) {
+      if (cleanName !== oldName) {
         await fetch("/api/library/rename", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldName: editLibName, newName: cleanName })
+          body: JSON.stringify({ oldName, newName: cleanName })
         });
       }
-
-      const urls = editUrlsText.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
 
       if (urls.length > 0) {
         await fetch("/api/ingest", {
@@ -811,21 +818,16 @@ function App() {
           body: JSON.stringify({
             library: cleanName,
             targets: urls,
-            cleanReindex: cleanReindex,
-            maxPages: editMaxPages,
-            maxDepth: editMaxDepth
+            cleanReindex: isClean,
+            maxPages: maxPages,
+            maxDepth: maxDepth
           })
         });
       }
-
-      setEditOpen(false);
-      showToast(`Updated and reindexing "${cleanName}"`, "success");
       loadLibraries();
       pollJobs();
     } catch (err) {
       showToast("Update failed: " + err.message, "error");
-    } finally {
-      setReindexing(false);
     }
   };
 
@@ -1028,15 +1030,20 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {activeJobs.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-[#0C4A6E]/80 border border-[#0284C7]/50 rounded-xl text-xs font-mono text-[#38BDF8] shadow-lg animate-pulse">
+            {activeJobs.slice(0, 2).map(job => (
+              <div key={job.id} className="flex items-center gap-2 px-3 py-1 bg-[#0C4A6E]/80 border border-[#0284C7]/50 rounded-xl text-xs font-mono text-[#38BDF8] shadow-lg animate-pulse">
                 <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-ping"></span>
-                <span className="font-semibold">Indexing {activeJobs[0].library}:</span>
-                <span>{activeJobs[0].progress}%</span>
-                <div className="w-16 bg-[#082F49] h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#38BDF8] h-full transition-all duration-200" style={{ width: activeJobs[0].progress + '%' }}></div>
+                <span className="font-semibold truncate max-w-[120px]">{job.library}:</span>
+                <span>{job.progress}%</span>
+                <div className="w-14 bg-[#082F49] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#38BDF8] h-full transition-all duration-200" style={{ width: job.progress + '%' }}></div>
                 </div>
               </div>
+            ))}
+            {activeJobs.length > 2 && (
+              <span className="text-[11px] font-mono text-[#38BDF8] px-2 py-0.5 rounded-lg bg-[#0C4A6E]/60 border border-[#0284C7]/40">
+                +{activeJobs.length - 2} more
+              </span>
             )}
 
             <button
