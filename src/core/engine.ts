@@ -156,7 +156,7 @@ export class Engine {
       queryVec = await EmbeddingEngine.embed(cleanQ);
     } catch {}
 
-    const vectorResults: SearchResult[] = [];
+    const vectorCandidates: { doc: DocEntry; sim: number; rank: number }[] = [];
     if (queryVec) {
       const allDocs = this.db.getAllDocsWithEmbeddings(library);
       const scored: { doc: DocEntry; sim: number }[] = [];
@@ -164,36 +164,84 @@ export class Engine {
       for (const { doc, embedding } of allDocs) {
         if (embedding) {
           const sim = EmbeddingEngine.cosineSimilarity(queryVec, embedding);
-          if (sim > 0.28) {
+          if (sim > 0.25) {
             scored.push({ doc, sim });
           }
         }
       }
 
       scored.sort((a, b) => b.sim - a.sim);
-      for (const item of scored.slice(0, limit)) {
-        vectorResults.push({
-          id: item.doc.id,
-          library: item.doc.library,
-          version: item.doc.version,
-          title: item.doc.title,
-          path: item.doc.path,
-          snippet: item.doc.content.slice(0, 240) + "...",
-          score: item.sim,
-          url: item.doc.url
+      scored.slice(0, 30).forEach((item, idx) => {
+        vectorCandidates.push({ doc: item.doc, sim: item.sim, rank: idx + 1 });
+      });
+    }
+
+    const ftsResults = this.db.search(cleanQ, library, 30);
+
+    // Modern Weighted Reciprocal Rank Fusion (RRF k=60) + Exact Symbol/Title Priority Boosting
+    const rrfMap = new Map<string, { result: SearchResult; rrfScore: number }>();
+    const k = 60;
+    const lowerQ = cleanQ.toLowerCase();
+
+    // 1. Accumulate Dense Vector RRF ranks
+    for (const v of vectorCandidates) {
+      const rrfContribution = 1.0 / (k + v.rank);
+      rrfMap.set(v.doc.id, {
+        result: {
+          id: v.doc.id,
+          library: v.doc.library,
+          version: v.doc.version,
+          title: v.doc.title,
+          path: v.doc.path,
+          snippet: v.doc.content.slice(0, 260) + "...",
+          score: v.sim,
+          url: v.doc.url
+        },
+        rrfScore: rrfContribution
+      });
+    }
+
+    // 2. Accumulate Sparse BM25 RRF ranks + Combine
+    ftsResults.forEach((f, idx) => {
+      const rank = idx + 1;
+      const rrfContribution = 1.0 / (k + rank);
+      if (rrfMap.has(f.id)) {
+        const existing = rrfMap.get(f.id)!;
+        existing.rrfScore += rrfContribution;
+        // Keep higher similarity score if available
+      } else {
+        rrfMap.set(f.id, {
+          result: {
+            ...f,
+            snippet: f.snippet || ""
+          },
+          rrfScore: rrfContribution
         });
       }
+    });
+
+    // 3. Apply Exact Symbol & Heading Boosts
+    for (const [id, entry] of rrfMap.entries()) {
+      const titleLower = entry.result.title.toLowerCase();
+      const pathLower = entry.result.path.toLowerCase();
+
+      // Exact title match boost
+      if (titleLower.includes(lowerQ) || lowerQ.includes(titleLower)) {
+        entry.rrfScore += 0.015;
+      }
+      // Exact path / identifier match boost
+      if (pathLower.includes(lowerQ)) {
+        entry.rrfScore += 0.01;
+      }
+      // Re-scale composite score for clean readability [0.0 - 1.0]
+      entry.result.score = Math.min(0.99, Number((entry.rrfScore * 28 + (entry.result.score || 0.5) * 0.3).toFixed(4)));
     }
 
-    const ftsResults = this.db.search(cleanQ, library, limit);
+    const fusedList = Array.from(rrfMap.values())
+      .sort((a, b) => b.rrfScore - a.rrfScore)
+      .map(item => item.result);
 
-    const localMergedMap = new Map<string, SearchResult>();
-    for (const v of vectorResults) localMergedMap.set(v.id, v);
-    for (const f of ftsResults) {
-      if (!localMergedMap.has(f.id)) localMergedMap.set(f.id, f);
-    }
-
-    const localResults = Array.from(localMergedMap.values()).slice(0, limit);
+    const localResults = fusedList.slice(0, limit);
     const isQuestionOrExploratory = /^(what|how|why|which|is|vs|compare|where|when|can|should)/i.test(cleanQ);
 
     if (localResults.length === 0 || isQuestionOrExploratory || !library) {
@@ -237,7 +285,7 @@ export class Engine {
       } catch {}
     }
 
-    const sourceKind = vectorResults.length > 0 ? "hybrid" : "fts5";
+    const sourceKind = vectorCandidates.length > 0 ? "hybrid" : "fts5";
     EventBus.emitSearchFired({
       query: cleanQ,
       library,
