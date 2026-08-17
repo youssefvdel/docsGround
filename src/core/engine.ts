@@ -317,4 +317,75 @@ export class Engine {
       results: localResults
     };
   }
+
+  /**
+   * Pure Semantic Auto-Context Grounding Engine (Meaning-Based Vector Match)
+   * Computes dense vector cosine similarity against all stored document embeddings.
+   * Injects context strictly when semantic conceptual similarity meets the threshold.
+   */
+  public async groundQuery(
+    queryText: string,
+    semanticThreshold: number = 0.68,
+    limit: number = 2
+  ): Promise<{
+    grounded: boolean;
+    confidence: number;
+    library?: string;
+    docId?: string;
+    title?: string;
+    context?: string;
+  }> {
+    const cleanQ = queryText.trim();
+    if (!cleanQ || cleanQ.length < 4) {
+      return { grounded: false, confidence: 0 };
+    }
+
+    let queryVec: Float32Array | null = null;
+    try {
+      queryVec = await EmbeddingEngine.embed(cleanQ);
+    } catch {
+      return { grounded: false, confidence: 0 };
+    }
+
+    if (!queryVec) {
+      return { grounded: false, confidence: 0 };
+    }
+
+    const allDocs = this.db.getAllDocsWithEmbeddings();
+    const scored: { doc: DocEntry; sim: number }[] = [];
+
+    for (const { doc, embedding } of allDocs) {
+      if (embedding) {
+        const sim = EmbeddingEngine.cosineSimilarity(queryVec, embedding);
+        if (sim >= semanticThreshold) {
+          scored.push({ doc, sim });
+        }
+      }
+    }
+
+    scored.sort((a, b) => b.sim - a.sim);
+
+    if (scored.length === 0) {
+      return { grounded: false, confidence: 0 };
+    }
+
+    const topMatches = scored.slice(0, limit);
+    const top = topMatches[0];
+
+    const contextBlocks = topMatches.map(m => {
+      const snippet = m.doc.content.slice(0, 750).trim();
+      return `### ${m.doc.library} • ${m.doc.title}\nSource: ${m.doc.url || m.doc.path}\nSemantic Match: ${(m.sim * 100).toFixed(1)}%\n\`\`\`markdown\n${snippet}\n\`\`\``;
+    }).join("\n\n");
+
+    const fullContext = `<grounded_docs intent="${cleanQ.replace(/"/g, "'")}" confidence="${(top.sim * 100).toFixed(1)}%">\n${contextBlocks}\n</grounded_docs>`;
+
+    return {
+      grounded: true,
+      confidence: top.sim,
+      library: top.doc.library,
+      docId: top.doc.id,
+      title: top.doc.title,
+      context: fullContext
+    };
+  }
 }

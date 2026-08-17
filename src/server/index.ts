@@ -176,6 +176,21 @@ export function createHttpServer(engine: Engine, port: number = 3030) {
         }, { headers });
       }
 
+      // Auto-context injection endpoint for Hermes & OpenCode plugins
+      if (url.pathname === "/api/ground" && req.method === "POST") {
+        try {
+          const body = await req.json() as any;
+          const queryText = String(body.query || "").trim();
+          const threshold = body.threshold !== undefined ? Number(body.threshold) : 0.78;
+          const limit = body.limit ? Number(body.limit) : 2;
+
+          const result = await engine.groundQuery(queryText, threshold, limit);
+          return Response.json(result, { headers });
+        } catch (err: any) {
+          return Response.json({ grounded: false, error: err.message }, { status: 400, headers });
+        }
+      }
+
       // Live web meta-search (used by the native Hermes plugin)
       if (url.pathname === "/api/web-search" && req.method === "POST") {
         try {
