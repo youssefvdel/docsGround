@@ -92,6 +92,6 @@ describe("docsGround End-to-End Suite", () => {
     const appRes = await fetch(`http://127.0.0.1:${testPort}/app.js`);
     expect(appRes.status).toBe(200);
     const appJs = await appRes.text();
-    expect(appJs).toContain("Embedding Provider");
+    expect(appJs).toContain("Obsidian Knowledge Mesh");
   });
 });
