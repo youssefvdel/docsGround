@@ -138,6 +138,28 @@ export class StealthFetcher {
     const queue: { url: string; depth: number }[] = [{ url: rootUrl, depth: 0 }];
     const crawledDocs: { url: string; html: string; path: string }[] = [];
 
+    // 2. Fast path for docs.rs crates: seed queue directly from all.html
+    if (originUrl.hostname === "docs.rs") {
+      try {
+        const allHtmlUrl = `${basePrefix}/all.html`;
+        const { html: allHtml } = await this.fetchWebPage(allHtmlUrl);
+        const { document } = parseHTML(allHtml);
+        const links = Array.from(document.querySelectorAll("#main-content a[href], section#main-content a[href], a[href]"))
+          .map(a => a.getAttribute("href"))
+          .filter(Boolean) as string[];
+
+        for (const href of links) {
+          try {
+            const fullUrl = new URL(href, allHtmlUrl);
+            const clean = fullUrl.origin + fullUrl.pathname;
+            if (clean.startsWith(basePrefix) && clean.endsWith(".html") && !clean.endsWith("all.html") && !visited.has(clean)) {
+              queue.push({ url: fullUrl.href, depth: 1 });
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
     while (queue.length > 0 && crawledDocs.length < maxPages) {
       const current = queue.shift()!;
       const cleanUrl = current.url.split("#")[0]!.replace(/\/+$/, "");
