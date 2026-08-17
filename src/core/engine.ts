@@ -5,6 +5,7 @@ import { SearxClient } from "../search/index.js";
 import { EmbeddingEngine } from "./embeddings.js";
 import { ConfigManager } from "./config.js";
 import { JobManager } from "./jobs.js";
+import { EventBus } from "./events.js";
 import type { IngestSource, SearchResult, DocEntry } from "./types.js";
 
 export class Engine {
@@ -112,6 +113,14 @@ export class Engine {
           this.db.upsertDoc(doc, embedding);
           count++;
 
+          EventBus.emitDocIndexed({
+            library: source.library,
+            docId: doc.id,
+            title: doc.title,
+            path: doc.path,
+            symbols: doc.symbols || []
+          });
+
           if (jobId) {
             JobManager.updateProgress(jobId, count, total, `Embedded & Saved (${count}/${total}): ${page.path}`);
           }
@@ -200,21 +209,41 @@ export class Engine {
         }));
 
         if (localResults.length === 0) {
+          EventBus.emitSearchFired({
+            query: cleanQ,
+            library,
+            matchedDocIds: mappedWeb.map(r => r.id),
+            source: "web"
+          });
           return {
             source: "web",
             results: mappedWeb
           };
         }
 
+        const hybridRes = [...localResults, ...mappedWeb].slice(0, limit + 4);
+        EventBus.emitSearchFired({
+          query: cleanQ,
+          library,
+          matchedDocIds: hybridRes.map(r => r.id),
+          source: "hybrid"
+        });
         return {
           source: "hybrid",
-          results: [...localResults, ...mappedWeb].slice(0, limit + 4)
+          results: hybridRes
         };
       } catch {}
     }
 
+    const sourceKind = vectorResults.length > 0 ? "hybrid" : "fts5";
+    EventBus.emitSearchFired({
+      query: cleanQ,
+      library,
+      matchedDocIds: localResults.map(r => r.id),
+      source: sourceKind
+    });
     return {
-      source: vectorResults.length > 0 ? "hybrid" : "fts5",
+      source: sourceKind,
       results: localResults
     };
   }

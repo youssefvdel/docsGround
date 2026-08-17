@@ -33,6 +33,334 @@ const { useState, useEffect, useRef } = React;
       );
     }
 
+    function OverviewNeuralGraph({ onOpenDoc }) {
+      const [topology, setTopology] = useState({ libraries: [], docs: [] });
+      const [activeGlowIds, setActiveGlowIds] = useState(new Set());
+      const [lastSearchInfo, setLastSearchInfo] = useState(null);
+      const [recentlySpawnedIds, setRecentlySpawnedIds] = useState(new Set());
+      const [pan, setPan] = useState({ x: 380, y: 220 });
+      const [zoom, setZoom] = useState(0.85);
+      const [isDragging, setIsDragging] = useState(false);
+      const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+      const [hoveredNode, setHoveredNode] = useState(null);
+
+      // Load initial topology
+      useEffect(() => {
+        fetch("/api/graph-topology")
+          .then(r => r.json())
+          .then(data => {
+            if (data.libraries && data.docs) setTopology(data);
+          })
+          .catch(() => {});
+
+        // Connect to Real-time SSE Stream
+        const es = new EventSource("/api/events");
+
+        es.addEventListener("search_fired", (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            const ids = new Set(data.matchedDocIds || []);
+            setActiveGlowIds(ids);
+            setLastSearchInfo({ query: data.query, count: ids.size, source: data.source, time: Date.now() });
+            
+            // Auto clear glow after 4.5 seconds
+            setTimeout(() => {
+              setActiveGlowIds(prev => {
+                const copy = new Set(prev);
+                for (const id of ids) copy.delete(id);
+                return copy;
+              });
+            }, 4500);
+          } catch {}
+        });
+
+        es.addEventListener("doc_indexed", (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            setTopology(prev => {
+              if (prev.docs.some(d => d.id === data.docId)) return prev;
+              return {
+                ...prev,
+                docs: [
+                  ...prev.docs,
+                  {
+                    id: data.docId,
+                    library: data.library,
+                    title: data.title,
+                    path: data.path,
+                    symbols: data.symbols || []
+                  }
+                ]
+              };
+            });
+
+            // Mark as recently spawned for pulse animation
+            setRecentlySpawnedIds(prev => new Set([...prev, data.docId]));
+            setTimeout(() => {
+              setRecentlySpawnedIds(prev => {
+                const next = new Set(prev);
+                next.delete(data.docId);
+                return next;
+              });
+            }, 4000);
+          } catch {}
+        });
+
+        return () => es.close();
+      }, []);
+
+      // Calculate cluster layout for all libraries & their documents
+      const clusterRadius = 240;
+      const libs = topology.libraries || [];
+      const docs = topology.docs || [];
+
+      const nodes = [];
+      const edges = [];
+
+      // Center Root Hub
+      nodes.push({
+        id: "hub:root",
+        label: "docsGround",
+        type: "root",
+        x: 0,
+        y: 0,
+        color: "#ffffff",
+        r: 32
+      });
+
+      libs.forEach((lib, libIdx) => {
+        const libAngle = (libIdx / Math.max(libs.length, 1)) * 2 * Math.PI - (Math.PI / 2);
+        const libX = Math.cos(libAngle) * clusterRadius;
+        const libY = Math.sin(libAngle) * clusterRadius;
+        const libId = `lib:${lib.name}`;
+
+        const colorMap = {
+          bun: "#FF7347",
+          tauri: "#529CCA",
+          react: "#61DAFB",
+          reactflow: "#FF0072",
+          slint: "#4DAB9A",
+          ratatui: "#9A6DD7"
+        };
+        const libColor = colorMap[lib.name] || "#4DAB9A";
+
+        // Library Cluster Node
+        nodes.push({
+          id: libId,
+          label: lib.name,
+          type: "library",
+          x: libX,
+          y: libY,
+          color: libColor,
+          r: 26,
+          libName: lib.name
+        });
+
+        edges.push({
+          id: `e-root-${libId}`,
+          fromX: 0,
+          fromY: 0,
+          toX: libX,
+          toY: libY,
+          color: libColor,
+          active: false
+        });
+
+        // Child Doc Nodes for this Library
+        const libDocs = docs.filter(d => d.library === lib.name);
+        libDocs.forEach((d, dIdx) => {
+          const docAngle = (dIdx / Math.max(libDocs.length, 1)) * 2 * Math.PI;
+          const dist = 75 + ((dIdx % 3) * 22);
+          const docX = libX + Math.cos(docAngle) * dist;
+          const docY = libY + Math.sin(docAngle) * dist;
+          const isGlowing = activeGlowIds.has(d.id);
+          const isSpawned = recentlySpawnedIds.has(d.id);
+
+          nodes.push({
+            id: d.id,
+            label: d.title || d.path,
+            type: "doc",
+            x: docX,
+            y: docY,
+            color: isGlowing ? "#52FFB8" : isSpawned ? "#FFD700" : libColor,
+            r: isGlowing ? 14 : isSpawned ? 13 : 8,
+            docId: d.id,
+            library: d.library,
+            isGlowing,
+            isSpawned
+          });
+
+          edges.push({
+            id: `e-${libId}-${d.id}`,
+            fromX: libX,
+            fromY: libY,
+            toX: docX,
+            toY: docY,
+            color: isGlowing ? "#52FFB8" : libColor,
+            active: isGlowing
+          });
+        });
+      });
+
+      const handleMouseDown = (e) => {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      };
+
+      const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+      };
+
+      const handleMouseUp = () => setIsDragging(false);
+
+      const handleWheel = (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom(z => Math.max(0.3, Math.min(2.5, z * delta)));
+      };
+
+      return (
+        <div 
+          className="relative w-full h-[460px] bg-[#121212] border border-[#262626] rounded-xl overflow-hidden cursor-grab active:cursor-grabbing select-none shadow-2xl"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          {/* Header Overlay */}
+          <div className="absolute top-3 left-4 z-10 flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-[#1b1b1b]/90 backdrop-blur border border-[#2e2e2e] px-3 py-1.5 rounded-lg text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-white font-medium">Neural Knowledge Map</span>
+              <span className="text-[#787774]">({docs.length} neurons live)</span>
+            </div>
+
+            {lastSearchInfo && (
+              <div className="flex items-center gap-2 bg-[#10231c]/90 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-mono animate-fade-in shadow-lg">
+                <span className="text-xs">⚡</span>
+                <span className="font-semibold">Agent Search:</span>
+                <span className="truncate max-w-[200px]">"{lastSearchInfo.query}"</span>
+                <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-200 rounded text-[10px] font-bold">
+                  {lastSearchInfo.count} neurons glowing
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="absolute bottom-3 right-4 z-10 flex items-center gap-1 bg-[#1b1b1b]/90 border border-[#2e2e2e] p-1 rounded-lg text-xs">
+            <button onClick={() => setZoom(z => Math.min(2.5, z * 1.2))} className="px-2 py-1 hover:bg-[#2e2e2e] text-white rounded">+</button>
+            <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="px-2 py-1 hover:bg-[#2e2e2e] text-white rounded">-</button>
+            <button onClick={() => { setPan({ x: 380, y: 220 }); setZoom(0.85); }} className="px-2 py-1 hover:bg-[#2e2e2e] text-xs text-[#9B9B9B] hover:text-white rounded">Reset View</button>
+          </div>
+
+          <svg className="w-full h-full">
+            <defs>
+              <pattern id="overview-grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                <circle cx="15" cy="15" r="0.8" fill="#262626" />
+              </pattern>
+              {/* Glow Filter for Active Search Neurons */}
+              <filter id="electric-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#overview-grid)" />
+
+            <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+              {/* Axon Edges */}
+              {edges.map(edge => (
+                <line
+                  key={edge.id}
+                  x1={edge.fromX}
+                  y1={edge.fromY}
+                  x2={edge.toX}
+                  y2={edge.toY}
+                  stroke={edge.color}
+                  strokeWidth={edge.active ? "2.5" : "1"}
+                  strokeOpacity={edge.active ? "0.9" : "0.22"}
+                  strokeDasharray={edge.active ? "4 2" : "none"}
+                  filter={edge.active ? "url(#electric-glow)" : undefined}
+                />
+              ))}
+
+              {/* Neuron Nodes */}
+              {nodes.map(node => (
+                <g 
+                  key={node.id} 
+                  transform={`translate(${node.x}, ${node.y})`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (node.docId) onOpenDoc(node.library, node.docId);
+                  }}
+                  onMouseEnter={() => setHoveredNode(node)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  className={node.docId ? "cursor-pointer group" : "cursor-default"}
+                >
+                  {/* Glowing Radar Pulse for Active Search Matches */}
+                  {node.isGlowing && (
+                    <circle
+                      r={node.r * 2.4}
+                      fill="none"
+                      stroke="#52FFB8"
+                      strokeWidth="1.5"
+                      strokeOpacity="0.8"
+                      className="animate-ping"
+                    />
+                  )}
+
+                  {/* Spawn Pulse for newly indexed docs */}
+                  {node.isSpawned && (
+                    <circle
+                      r={node.r * 2}
+                      fill="none"
+                      stroke="#FFD700"
+                      strokeWidth="2"
+                      strokeOpacity="0.9"
+                      className="animate-ping"
+                    />
+                  )}
+
+                  <circle
+                    r={node.r}
+                    fill="#181818"
+                    stroke={node.color}
+                    strokeWidth={node.isGlowing ? "3" : hoveredNode?.id === node.id ? "2.5" : "1.5"}
+                    filter={node.isGlowing ? "url(#electric-glow)" : undefined}
+                    className="transition-all duration-200"
+                  />
+                  <circle
+                    r={node.r * 0.75}
+                    fill={node.color}
+                    fillOpacity={node.isGlowing ? "0.85" : "0.25"}
+                  />
+
+                  {/* Node Label */}
+                  {(node.type === "root" || node.type === "library" || node.isGlowing || hoveredNode?.id === node.id) && (
+                    <text
+                      textAnchor="middle"
+                      dy={node.type === "doc" ? "-12" : "4"}
+                      fill={node.isGlowing ? "#52FFB8" : "#ffffff"}
+                      fontSize={node.type === "root" ? "12" : node.type === "library" ? "11" : "10"}
+                      fontWeight={node.isGlowing ? "700" : "500"}
+                      fontFamily="Inter, sans-serif"
+                      className="pointer-events-none select-none"
+                    >
+                      {node.label.length > 18 ? node.label.slice(0, 16) + "…" : node.label}
+                    </text>
+                  )}
+                </g>
+              ))}
+            </g>
+          </svg>
+        </div>
+      );
+    }
+
     function KnowledgeGraph({ doc, libraryDocs, onSelectDoc }) {
       const canvasRef = useRef(null);
       const [pan, setPan] = useState({ x: 300, y: 250 });
@@ -879,6 +1207,22 @@ const { useState, useEffect, useRef } = React;
                       Press <kbd className="px-1.5 py-0.5 bg-[#191919] border border-[#2e2e2e] rounded text-[#D4D4D4] font-mono">Ctrl+K</kbd> to search. Searches local vectors + FTS5, and automatically queries the live web for broader questions.
                     </span>
                   </div>
+                </div>
+
+                {/* Real-time Interactive Neural Knowledge Graph */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#787774] flex items-center gap-2">
+                      <Icons.network className="w-3.5 h-3.5 text-[#529CCA]" /> LIVE KNOWLEDGE NEURONS & AGENT ACTIVITY
+                    </span>
+                    <span className="text-[11px] text-[#787774] font-mono">Neurons glow green on AI agent query • Gold on crawl</span>
+                  </div>
+                  <OverviewNeuralGraph
+                    onOpenDoc={(lib, docId) => {
+                      openLibrary(lib);
+                      setTimeout(() => loadDoc(docId), 150);
+                    }}
+                  />
                 </div>
 
                 {/* Notion Database Table View with Manage Actions */}

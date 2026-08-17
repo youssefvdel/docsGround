@@ -1,6 +1,7 @@
 import { Engine } from "../core/engine.js";
 import { ConfigManager } from "../core/config.js";
 import { JobManager } from "../core/jobs.js";
+import { EventBus, type DocsGroundEvent } from "../core/events.js";
 import { StealthFetcher } from "../fetcher/index.js";
 import { DocParser } from "../parser/index.js";
 import { readFileSync, existsSync } from "fs";
@@ -53,6 +54,59 @@ export function createHttpServer(engine: Engine, port: number = 3030) {
         return new Response(COMPILED_APP_JS, {
           headers: { "Content-Type": "application/javascript; charset=utf-8", ...headers }
         });
+      }
+
+      // Real-time Event Stream (SSE) for search glow & live indexing neuron spawning
+      if (url.pathname === "/api/events" && req.method === "GET") {
+        let unsubscribe: (() => void) | null = null;
+
+        const stream = new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            
+            // Send initial ping
+            controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ ok: true })}\n\n`));
+
+            unsubscribe = EventBus.subscribe((evt: DocsGroundEvent) => {
+              try {
+                controller.enqueue(encoder.encode(`event: ${evt.type}\ndata: ${JSON.stringify(evt.data)}\n\n`));
+              } catch {
+                if (unsubscribe) unsubscribe();
+              }
+            });
+          },
+          cancel() {
+            if (unsubscribe) unsubscribe();
+          }
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            ...headers
+          }
+        });
+      }
+
+      // Graph Overview Topology Data
+      if (url.pathname === "/api/graph-topology" && req.method === "GET") {
+        const libs = engine.db.listLibraries();
+        const allDocs: { id: string; library: string; title: string; path: string; symbols: string[] }[] = [];
+        for (const lib of libs) {
+          const docs = engine.db.getDocsByLibrary(lib.name);
+          for (const d of docs.slice(0, 40)) { // top 40 docs per library for smooth WebGL/SVG rendering
+            allDocs.push({
+              id: d.id,
+              library: lib.name,
+              title: d.title,
+              path: d.path,
+              symbols: (d.symbols || []).slice(0, 4)
+            });
+          }
+        }
+        return Response.json({ libraries: libs, docs: allDocs }, { headers });
       }
 
       // API Endpoints
