@@ -257,6 +257,21 @@ export function createHttpServer(engine: Engine, port: number = 3030) {
         }
       }
 
+      // Logo Static Asset
+      if (url.pathname === "/logo.png") {
+        const file = Bun.file(join(import.meta.dir, "../../logo.png"));
+        return new Response(file, {
+          headers: { "Content-Type": "image/png" }
+        });
+      }
+
+      if (url.pathname === "/logo.svg") {
+        const file = Bun.file(join(import.meta.dir, "../../logo.svg"));
+        return new Response(file, {
+          headers: { "Content-Type": "image/svg+xml" }
+        });
+      }
+
       // Notion Design Language Web UI
       if (url.pathname === "/" || url.pathname === "/index.html") {
         return new Response(getWebUiHtml(), {

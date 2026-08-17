@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" fill="none">
+  <rect width="100" height="100" rx="22" fill="#0C0E12" stroke="#1F242D" stroke-width="2"/>
+  <!-- Document Folded Sheet -->
+  <path d="M 28 20 L 58 20 L 74 36 L 74 80 C 74 82.2 72.2 84 70 84 L 28 84 C 25.8 84 24 82.2 24 80 L 24 24 C 24 21.8 25.8 20 28 20 Z" 
+        fill="#12161E" stroke="#34D399" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Corner Fold -->
+  <path d="M 58 20 L 58 36 L 74 36" fill="#18202A" stroke="#34D399" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Calm Lightning Bolt in Center -->
+  <path d="M 52 38 L 40 54 L 49 54 L 44 70 L 60 50 L 51 50 Z" 
+        fill="#38BDF8" stroke="#34D399" stroke-width="1.2" stroke-linejoin="round"/>
+</svg>

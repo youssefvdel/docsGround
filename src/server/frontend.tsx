@@ -1032,9 +1032,9 @@ function App() {
         <div className="flex flex-col items-center gap-4">
           <div 
             onClick={() => setView("page")}
-            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer hover:scale-105 transition shadow-lg"
+            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer hover:scale-105 transition shadow-lg overflow-hidden border border-[#272B33]"
           >
-            <img src="/logo.svg" alt="docsGround" className="w-8 h-8 rounded-lg" />
+            <img src="/logo.png" alt="docsGround" className="w-full h-full object-cover" />
           </div>
 
           <div className="w-6 h-[1px] bg-[#242731]"></div>
