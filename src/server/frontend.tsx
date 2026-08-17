@@ -120,12 +120,25 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
   const animFrameRef = useRef(null);
   const [, setRenderTick] = useState(0);
 
-  // Auto-center on mount once container is rendered
+  // Auto-center on mount once container is rendered & attach active non-passive wheel handler
   useEffect(() => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       setPan({ x: rect.width / 2, y: rect.height / 2 });
     }
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheelHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoom(z => Math.max(0.2, Math.min(2.5, z * delta)));
+    };
+
+    el.addEventListener("wheel", onWheelHandler, { passive: false });
+    return () => el.removeEventListener("wheel", onWheelHandler);
   }, []);
 
   // Sync Topology into Physics Graph Nodes
@@ -368,7 +381,6 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
       onMouseLeave={handleCanvasMouseUp}
-      onWheel={handleWheel}
     >
       {/* Obsidian Header Pill */}
       <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
