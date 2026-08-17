@@ -60,8 +60,9 @@ function CustomCheckbox({ id, checked, onChange, label, description }) {
 // Obsidian Force-Directed Physics Graph View (Spring + Repulsion + Drift)
 // -----------------------------------------------------------------------------
 function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, lastSearchInfo, onOpenDoc, height = "520px" }) {
-  const [pan, setPan] = useState({ x: 440, y: 260 });
-  const [zoom, setZoom] = useState(0.85);
+  const containerRef = useRef(null);
+  const [pan, setPan] = useState({ x: 500, y: 220 });
+  const [zoom, setZoom] = useState(0.55);
   const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -72,28 +73,22 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
   const animFrameRef = useRef(null);
   const [, setRenderTick] = useState(0);
 
+  // Auto-center on mount once container is rendered
+  useEffect(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPan({ x: rect.width / 2, y: rect.height / 2 });
+    }
+  }, []);
+
   // Sync Topology into Physics Graph Nodes
   useEffect(() => {
     const libs = topology.libraries || [];
     const docs = topology.docs || [];
-    const clusterRadius = 260;
+    const clusterRadius = libs.length <= 1 ? 0 : 270;
 
     const newNodes = [];
     const newEdges = [];
-
-    // Core Hub Node
-    newNodes.push({
-      id: "hub:root",
-      label: "docsGround",
-      type: "root",
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
-      color: "#10B981",
-      r: 30,
-      isFixed: true
-    });
 
     const palette = {
       bun: "#F97316",
@@ -104,10 +99,27 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
       ratatui: "#A855F7"
     };
 
+    if (libs.length > 1) {
+      // Core Hub Node for Multi-Library Overview
+      newNodes.push({
+        id: "hub:root",
+        label: "docsGround",
+        type: "root",
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        color: "#10B981",
+        r: 30,
+        isFixed: true
+      });
+    }
+
     libs.forEach((lib, libIdx) => {
+      const isSingle = libs.length <= 1;
       const libAngle = (libIdx / Math.max(libs.length, 1)) * 2 * Math.PI - (Math.PI / 2);
-      const libX = Math.cos(libAngle) * clusterRadius;
-      const libY = Math.sin(libAngle) * clusterRadius;
+      const libX = isSingle ? 0 : Math.cos(libAngle) * clusterRadius;
+      const libY = isSingle ? 0 : Math.sin(libAngle) * clusterRadius;
       const libId = `lib:${lib.name}`;
       const libColor = palette[lib.name] || "#10B981";
 
@@ -124,22 +136,25 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
         vx: existing ? existing.vx : (Math.random() - 0.5) * 2,
         vy: existing ? existing.vy : (Math.random() - 0.5) * 2,
         color: libColor,
-        r: 22,
-        libName: lib.name
+        r: isSingle ? 28 : 22,
+        libName: lib.name,
+        isFixed: isSingle
       });
 
-      newEdges.push({
-        id: `e-root-${libId}`,
-        source: "hub:root",
-        target: libId,
-        color: libColor,
-        length: clusterRadius
-      });
+      if (!isSingle) {
+        newEdges.push({
+          id: `e-root-${libId}`,
+          source: "hub:root",
+          target: libId,
+          color: libColor,
+          length: clusterRadius
+        });
+      }
 
-      const libDocs = docs.filter(d => d.library === lib.name);
+      const libDocs = docs.filter(d => (d.library || lib.name) === lib.name);
       libDocs.forEach((d, dIdx) => {
         const docAngle = (dIdx / Math.max(libDocs.length, 1)) * 2 * Math.PI;
-        const dist = 80 + ((dIdx % 3) * 28);
+        const dist = isSingle ? (110 + ((dIdx % 4) * 35)) : (80 + ((dIdx % 3) * 28));
         const docX = libX + Math.cos(docAngle) * dist;
         const docY = libY + Math.sin(docAngle) * dist;
 
@@ -158,7 +173,7 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
           color: libColor,
           r: 8.5,
           docId: d.id,
-          library: d.library
+          library: d.library || lib.name
         });
 
         newEdges.push({
@@ -260,11 +275,14 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
   const handleCanvasMouseMove = (e) => {
     if (isPanning) {
       setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    } else if (draggingNodeId) {
+    } else if (draggingNodeId && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
       const node = nodesRef.current.find(n => n.id === draggingNodeId);
       if (node) {
-        node.x = (e.clientX - pan.x) / zoom;
-        node.y = (e.clientY - pan.y) / zoom;
+        node.x = (mouseX - pan.x) / zoom;
+        node.y = (mouseY - pan.y) / zoom;
         node.vx = 0;
         node.vy = 0;
       }
@@ -279,7 +297,15 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
   const handleWheel = (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(z => Math.max(0.3, Math.min(2.5, z * delta)));
+    setZoom(z => Math.max(0.2, Math.min(2.5, z * delta)));
+  };
+
+  const resetView = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPan({ x: rect.width / 2, y: rect.height / 2 });
+      setZoom(0.55);
+    }
   };
 
   const nodes = nodesRef.current;
@@ -288,6 +314,7 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
 
   return (
     <div 
+      ref={containerRef}
       style={{ height }}
       className="relative w-full bg-[#0A0B0D] border border-[#1E2026] rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none shadow-2xl"
       onMouseDown={handleCanvasMouseDown}
@@ -319,8 +346,8 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
       {/* Control Buttons */}
       <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 bg-[#14161A]/90 backdrop-blur border border-[#272B33] p-1.5 rounded-xl text-xs shadow-xl">
         <button onClick={() => setZoom(z => Math.min(2.5, z * 1.2))} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">+</button>
-        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">-</button>
-        <button onClick={() => { setPan({ x: 440, y: 260 }); setZoom(0.85); }} className="px-3 py-1 hover:bg-[#22252C] text-xs text-[#A1A1AA] hover:text-white rounded-lg transition font-mono">Reset</button>
+        <button onClick={() => setZoom(z => Math.max(0.2, z * 0.8))} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">-</button>
+        <button onClick={resetView} className="px-3 py-1 hover:bg-[#22252C] text-xs text-[#A1A1AA] hover:text-white rounded-lg transition font-mono">Reset</button>
       </div>
 
       <svg className="w-full h-full">

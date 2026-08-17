@@ -202,10 +202,11 @@ export class DocDB {
     }
   }
 
-  public getDocsByLibrary(library: string): { id: string; title: string; path: string; headings?: string[]; symbols?: string[] }[] {
-    const rows = this.db.query("SELECT id, title, path, headings, symbols FROM docs WHERE library = ? ORDER BY path ASC").all(library) as any[];
+  public getDocsByLibrary(library: string): { id: string; library: string; title: string; path: string; headings?: string[]; symbols?: string[] }[] {
+    const rows = this.db.query("SELECT id, library, title, path, headings, symbols FROM docs WHERE library = ? ORDER BY path ASC").all(library) as any[];
     return rows.map(r => ({
       id: r.id,
+      library: r.library,
       title: r.title,
       path: r.path,
       headings: r.headings ? JSON.parse(r.headings) : undefined,
