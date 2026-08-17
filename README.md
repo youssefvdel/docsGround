@@ -1,7 +1,11 @@
 <div align="center">
-  <img src="./assets/logo.svg" alt="docsGround" width="140" height="140" />
+  <img src="./assets/banner.png" alt="docsGround Banner" width="100%" />
+
+  <br/><br/>
+
+  <img src="./assets/logo.svg" alt="docsGround" width="100" height="100" />
   <h1>docsGround</h1>
-  <p><strong>Universal Documentation Grounding & Search Engine for AI Coding Agents</strong></p>
+  <p><strong>Universal Documentation Grounding & High-Speed Search Engine for AI Coding Agents</strong></p>
   <p>
     <a href="#features">Features</a> •
     <a href="#quick-start">Quick Start</a> •
