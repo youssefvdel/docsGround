@@ -94,6 +94,8 @@ export class NativeMetaSearch {
       this.searchBrave(query),
       this.searchGitHub(query),
       this.searchWikipedia(query),
+      this.searchCratesIo(query),
+      this.searchNpm(query),
     ];
 
     const settled = await Promise.allSettled(engines);
@@ -123,11 +125,75 @@ export class NativeMetaSearch {
     const ranked = [...byUrl.values()]
       .map(({ item, engines }) => ({
         item,
-        score: (item.score || 0) + engines.size * 0.5 + (DEV_DOMAIN_RE.test(item.url) ? 0.15 : 0),
+        score: (item.score || 0) + engines.size * 0.5 + (DEV_DOMAIN_RE.test(item.url) ? 0.25 : 0),
       }))
       .sort((a, b) => b.score - a.score);
 
     return ranked.slice(0, limit).map(({ item }) => item);
+  }
+
+  // ------------------------------------------------------------------------
+  // Crates.io API — Direct Rust Crate Registry Lookups
+  // ------------------------------------------------------------------------
+  private static async searchCratesIo(query: string): Promise<EngineResult> {
+    const cleanQ = query.replace(/[^\w\-\_]/g, " ").trim().split(/\s+/)[0];
+    if (!cleanQ || cleanQ.length < 2) return { engine: "crates.io", items: [] };
+
+    try {
+      const res = await fetch(`https://crates.io/api/v1/crates?q=${encodeURIComponent(cleanQ)}&per_page=3`, {
+        headers: { "User-Agent": "docsGround/1.0 (dev search client)" },
+        signal: AbortSignal.timeout(3500)
+      });
+      if (!res.ok) return { engine: "crates.io", items: [] };
+      const data = await res.json() as any;
+      const items: SearxResult[] = [];
+
+      for (const c of (data.crates || [])) {
+        items.push({
+          title: `crate ${c.name} v${c.max_version} (crates.io)`,
+          url: `https://docs.rs/${c.name}/latest/${c.name}/`,
+          content: `${c.description || "Rust crate"} • Documentation on docs.rs • Downloads: ${c.downloads}`,
+          engine: "crates.io",
+          score: 1.2
+        });
+      }
+      return { engine: "crates.io", items };
+    } catch {
+      return { engine: "crates.io", items: [] };
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // npm Registry API — Direct JS/TS Package Lookups
+  // ------------------------------------------------------------------------
+  private static async searchNpm(query: string): Promise<EngineResult> {
+    const cleanQ = query.replace(/[^\w\-\_@\/]/g, " ").trim().split(/\s+/)[0];
+    if (!cleanQ || cleanQ.length < 2) return { engine: "npm", items: [] };
+
+    try {
+      const res = await fetch(`https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(cleanQ)}&size=3`, {
+        headers: { "User-Agent": "docsGround/1.0" },
+        signal: AbortSignal.timeout(3500)
+      });
+      if (!res.ok) return { engine: "npm", items: [] };
+      const data = await res.json() as any;
+      const items: SearxResult[] = [];
+
+      for (const obj of (data.objects || [])) {
+        const pkg = obj.package;
+        if (!pkg) continue;
+        items.push({
+          title: `npm package ${pkg.name} v${pkg.version}`,
+          url: pkg.links?.homepage || pkg.links?.repository || pkg.links?.npm || `https://www.npmjs.com/package/${pkg.name}`,
+          content: `${pkg.description || "Node/TS package"} • npm: ${pkg.name} • Publisher: ${pkg.publisher?.username || "unknown"}`,
+          engine: "npm",
+          score: 1.1
+        });
+      }
+      return { engine: "npm", items };
+    } catch {
+      return { engine: "npm", items: [] };
+    }
   }
 
   // ------------------------------------------------------------------------
