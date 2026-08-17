@@ -77,6 +77,44 @@ export class StealthFetcher {
   }
 
   /**
+   * Check for modern /llms.txt or /llms-full.txt AI documentation endpoints
+   */
+  public static async probeLlmsTxt(rootUrl: string): Promise<{ url: string; html: string; path: string }[] | null> {
+    try {
+      const origin = new URL(rootUrl).origin;
+      const candidates = [
+        `${origin}/llms-full.txt`,
+        `${origin}/llms.txt`,
+        `${rootUrl.replace(/\/+$/, "")}/llms-full.txt`,
+        `${rootUrl.replace(/\/+$/, "")}/llms.txt`
+      ];
+
+      for (const target of candidates) {
+        try {
+          const res = await fetch(target, {
+            headers: {
+              "User-Agent": DEFAULT_USER_AGENT,
+              "Accept": "text/plain, text/markdown, text/html, */*"
+            },
+            signal: AbortSignal.timeout(4000)
+          });
+          if (res.ok) {
+            const text = await res.text();
+            if (text.length > 500 && (text.includes("# ") || text.includes("## "))) {
+              return [{
+                url: target,
+                html: text,
+                path: "llms-full.md"
+              }];
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+    return null;
+  }
+
+  /**
    * Recursive Web Docs Crawler with Real-Time Callback
    */
   public static async crawlWebDocs(
@@ -85,6 +123,13 @@ export class StealthFetcher {
     maxDepth: number = 4,
     onPageFound?: (count: number, currentUrl: string) => void
   ): Promise<{ url: string; html: string; path: string }[]> {
+    // 1. Fast path: Probe llms.txt standard
+    const llmsResult = await this.probeLlmsTxt(rootUrl);
+    if (llmsResult && llmsResult.length > 0) {
+      if (onPageFound) onPageFound(1, "llms.txt (Direct Full Docs Standard)");
+      return llmsResult;
+    }
+
     const originUrl = new URL(rootUrl);
     const basePath = originUrl.pathname.replace(/\/+$/, "");
     const basePrefix = `${originUrl.origin}${basePath}`;

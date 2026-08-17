@@ -29,14 +29,91 @@ turndown.addRule("rustDocDetails", {
 
 turndown.remove(["script", "style", "iframe", "noscript"]);
 
+export interface DocChunk {
+  id: string;
+  title: string;
+  heading: string;
+  content: string;
+  symbols: string[];
+}
+
 export interface ParsedDoc {
   title: string;
   markdown: string;
   headings: string[];
   symbols: string[];
+  chunks: DocChunk[];
 }
 
 export class DocParser {
+  /**
+   * Split long markdown document into coherent heading-aware chunks with parent metadata
+   */
+  public static chunkMarkdown(raw: string, baseTitle: string, maxTokens: number = 400): DocChunk[] {
+    const lines = raw.split("\n");
+    const chunks: DocChunk[] = [];
+    
+    let currentHeading = baseTitle;
+    let currentLines: string[] = [];
+    let chunkIndex = 0;
+
+    const flushChunk = () => {
+      const text = currentLines.join("\n").trim();
+      if (text.length > 20) {
+        const symbols: string[] = [];
+        const symMatches = text.match(/(?:class|interface|type|enum|function|fn|pub fn|struct|pub struct|trait|pub trait|impl|def)\s+([A-Za-z0-9_]+)/g);
+        if (symMatches) {
+          for (const m of symMatches) {
+            const sym = m.split(/\s+/).pop();
+            if (sym && !symbols.includes(sym)) symbols.push(sym);
+          }
+        }
+
+        chunks.push({
+          id: `chunk_${chunkIndex++}`,
+          title: baseTitle,
+          heading: currentHeading,
+          content: `${baseTitle} > ${currentHeading}\n\n${text}`,
+          symbols
+        });
+      }
+      currentLines = [];
+    };
+
+    for (const line of lines) {
+      const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+      if (headingMatch && headingMatch[2]) {
+        if (currentLines.length > 0) {
+          flushChunk();
+        }
+        currentHeading = headingMatch[2].trim();
+      } else {
+        currentLines.push(line);
+        // If section exceeds ~300 words without a heading, flush a split chunk
+        if (currentLines.length > 50) {
+          flushChunk();
+        }
+      }
+    }
+
+    if (currentLines.length > 0) {
+      flushChunk();
+    }
+
+    // If doc was very short and produced no chunks, create at least one
+    if (chunks.length === 0 && raw.trim().length > 0) {
+      chunks.push({
+        id: "chunk_0",
+        title: baseTitle,
+        heading: baseTitle,
+        content: raw.trim(),
+        symbols: []
+      });
+    }
+
+    return chunks;
+  }
+
   public static parseMarkdown(raw: string, fallbackTitle: string = "Untitled"): ParsedDoc {
     const headings: string[] = [];
     const symbols: string[] = [];
@@ -59,12 +136,14 @@ export class DocParser {
     }
 
     const title = headings.length > 0 ? (headings[0] ?? fallbackTitle) : fallbackTitle;
+    const chunks = this.chunkMarkdown(raw, title);
 
     return {
       title,
       markdown: raw.trim(),
       headings,
-      symbols
+      symbols,
+      chunks
     };
   }
 

@@ -44,7 +44,8 @@ export class Engine {
           
           let embedding: Float32Array | undefined;
           try {
-            const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.markdown.slice(0, 500)}`;
+            const chunkContext = (parsed.chunks || []).slice(0, 3).map(c => c.content).join("\n\n").slice(0, 1000);
+            const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.headings.join(" | ")}\n\n${chunkContext}`;
             embedding = await EmbeddingEngine.embed(embedText);
           } catch {}
 
@@ -93,7 +94,8 @@ export class Engine {
 
           let embedding: Float32Array | undefined;
           try {
-            const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.markdown.slice(0, 500)}`;
+            const chunkContext = (parsed.chunks || []).slice(0, 3).map(c => c.content).join("\n\n").slice(0, 1000);
+            const embedText = `${parsed.title}\n${parsed.symbols.join(" ")}\n${parsed.headings.join(" | ")}\n\n${chunkContext}`;
             embedding = await EmbeddingEngine.embed(embedText);
           } catch {}
 
