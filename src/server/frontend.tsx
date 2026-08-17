@@ -115,46 +115,28 @@ function CustomNumberStepper({ value, onChange, min = 0, max = 10000, step = 1, 
 // -----------------------------------------------------------------------------
 // Obsidian Force-Directed Physics Graph View (Spring + Repulsion + Drift)
 // -----------------------------------------------------------------------------
+// Obsidian Ultra-High-Performance Canvas 2D Physics Graph (Zero DOM Overload)
+// -----------------------------------------------------------------------------
 function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, lastSearchInfo, onOpenDoc, height = "520px" }) {
   const containerRef = useRef(null);
-  const [pan, setPan] = useState({ x: 500, y: 220 });
-  const [zoom, setZoom] = useState(0.38);
-  const [isPanning, setIsPanning] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [hoveredNode, setHoveredNode] = useState(null);
-  const [draggingNodeId, setDraggingNodeId] = useState(null);
+  const canvasRef = useRef(null);
+
+  const panRef = useRef({ x: 500, y: 220 });
+  const zoomRef = useRef(0.38);
+  const isPanningRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const draggingNodeRef = useRef(null);
+  const hoveredNodeRef = useRef(null);
 
   const nodesRef = useRef([]);
   const edgesRef = useRef([]);
   const animFrameRef = useRef(null);
-  const [, setRenderTick] = useState(0);
-
-  // Auto-center on mount once container is rendered & attach active non-passive wheel handler
-  useEffect(() => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setPan({ x: rect.width / 2, y: rect.height / 2 });
-    }
-
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onWheelHandler = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom(z => Math.max(0.12, Math.min(2.5, z * delta)));
-    };
-
-    el.addEventListener("wheel", onWheelHandler, { passive: false });
-    return () => el.removeEventListener("wheel", onWheelHandler);
-  }, []);
 
   // Sync Topology into Physics Graph Nodes
   useEffect(() => {
     const libs = topology.libraries || [];
     const docs = topology.docs || [];
-    const clusterRadius = libs.length <= 1 ? 0 : 270;
+    const clusterRadius = libs.length <= 1 ? 0 : 280;
 
     const newNodes = [];
     const newEdges = [];
@@ -169,7 +151,6 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
     };
 
     if (libs.length > 1) {
-      // Core Hub Node for Multi-Library Overview
       newNodes.push({
         id: "hub:root",
         label: "docsGround",
@@ -179,7 +160,7 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
         vx: 0,
         vy: 0,
         color: "#10B981",
-        r: 30,
+        r: 26,
         isFixed: true
       });
     }
@@ -202,10 +183,10 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
         y: existing ? existing.y : libY,
         targetX: libX,
         targetY: libY,
-        vx: existing ? existing.vx : (Math.random() - 0.5) * 2,
-        vy: existing ? existing.vy : (Math.random() - 0.5) * 2,
+        vx: existing ? existing.vx : 0,
+        vy: existing ? existing.vy : 0,
         color: libColor,
-        r: isSingle ? 28 : 22,
+        r: isSingle ? 24 : 18,
         libName: lib.name,
         isFixed: isSingle
       });
@@ -237,10 +218,10 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
           y: existingDoc ? existingDoc.y : docY,
           targetX: docX,
           targetY: docY,
-          vx: existingDoc ? existingDoc.vx : (Math.random() - 0.5) * 1.5,
-          vy: existingDoc ? existingDoc.vy : (Math.random() - 0.5) * 1.5,
+          vx: existingDoc ? existingDoc.vx : 0,
+          vy: existingDoc ? existingDoc.vy : 0,
           color: libColor,
-          r: 8.5,
+          r: 7,
           docId: d.id,
           library: d.library || lib.name
         });
@@ -259,29 +240,70 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
     edgesRef.current = newEdges;
   }, [topology]);
 
-  // Obsidian Continuous Physics Simulation Loop
+  // Direct Hardware-Accelerated Canvas Rendering & Physics Loop
   useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    let width = container.clientWidth;
+    let heightPx = container.clientHeight;
+
+    const resize = () => {
+      width = container.clientWidth;
+      heightPx = container.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = heightPx * dpr;
+      canvas.style.width = width + "px";
+      canvas.style.height = heightPx + "px";
+      ctx.scale(dpr, dpr);
+    };
+    resize();
+
+    // Center on mount
+    panRef.current = { x: width / 2, y: heightPx / 2 };
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      zoomRef.current = Math.max(0.12, Math.min(2.5, zoomRef.current * delta));
+    };
+
+    container.addEventListener("wheel", onWheel, { passive: false });
+
     let time = 0;
-    const tick = () => {
+    const render = () => {
       time += 0.02;
       const nodes = nodesRef.current;
       const edges = edgesRef.current;
+      const pan = panRef.current;
+      const zoom = zoomRef.current;
+      const draggingNode = draggingNodeRef.current;
+      const activeGlows = activeGlowIds;
+      const spawned = recentlySpawnedIds;
 
-      // 1. Coulomb Repulsion between Nodes
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const na = nodes[i];
+      // 1. Cluster-Restricted Fast Repulsion (O(K * M) instead of O(N^2))
+      for (let i = 0; i < nodes.length; i += 2) {
+        const na = nodes[i];
+        if (!na) continue;
+        for (let j = i + 1; j < Math.min(nodes.length, i + 35); j++) {
           const nb = nodes[j];
+          if (!nb || (na.type === "doc" && nb.type === "doc" && na.library !== nb.library)) continue;
           const dx = nb.x - na.x;
           const dy = nb.y - na.y;
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          if (dist < 190) {
-            const force = (190 - dist) / dist * 0.16;
-            if (!na.isFixed && na.id !== draggingNodeId) {
+          if (dist < 140) {
+            const force = (140 - dist) / dist * 0.12;
+            if (!na.isFixed && na !== draggingNode) {
               na.vx -= dx * force;
               na.vy -= dy * force;
             }
-            if (!nb.isFixed && nb.id !== draggingNodeId) {
+            if (!nb.isFixed && nb !== draggingNode) {
               nb.vx += dx * force;
               nb.vy += dy * force;
             }
@@ -289,7 +311,7 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
         }
       }
 
-      // 2. Hooke's Elastic Spring Force
+      // 2. Hooke's Elastic Springs
       const nodeMap = new Map(nodes.map(n => [n.id, n]));
       for (const edge of edges) {
         const src = nodeMap.get(edge.source);
@@ -299,104 +321,229 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
         const dy = tgt.y - src.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         const displacement = dist - edge.length;
-        const springForce = displacement * 0.028;
+        const springForce = displacement * 0.025;
 
-        if (!src.isFixed && src.id !== draggingNodeId) {
+        if (!src.isFixed && src !== draggingNode) {
           src.vx += (dx / dist) * springForce;
           src.vy += (dy / dist) * springForce;
         }
-        if (!tgt.isFixed && tgt.id !== draggingNodeId) {
+        if (!tgt.isFixed && tgt !== draggingNode) {
           tgt.vx -= (dx / dist) * springForce;
           tgt.vy -= (dy / dist) * springForce;
         }
       }
 
-      // 3. Ambient Harmonic Floating Drift & Friction Damping
+      // 3. Ambient Drift & Friction Damping
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
-        if (n.isFixed || n.id === draggingNodeId) continue;
-        const driftX = Math.sin(time + i * 0.7) * 0.28;
-        const driftY = Math.cos(time + i * 0.9) * 0.28;
+        if (n.isFixed || n === draggingNode) continue;
+        const driftX = Math.sin(time + i * 0.7) * 0.22;
+        const driftY = Math.cos(time + i * 0.9) * 0.22;
 
-        n.vx = (n.vx + driftX) * 0.88;
-        n.vy = (n.vy + driftY) * 0.88;
+        n.vx = (n.vx + driftX) * 0.86;
+        n.vy = (n.vy + driftY) * 0.86;
         n.x += n.vx;
         n.y += n.vy;
       }
 
-      setRenderTick(t => (t + 1) % 1000);
-      animFrameRef.current = requestAnimationFrame(tick);
+      // -------------------------------------------------------------
+      // DRAW CANVAS FRAME
+      // -------------------------------------------------------------
+      ctx.fillStyle = "#0A0B0D";
+      ctx.fillRect(0, 0, width, heightPx);
+
+      ctx.save();
+      ctx.translate(pan.x, pan.y);
+      ctx.scale(zoom, zoom);
+
+      // Draw Grid Dots
+      ctx.fillStyle = "#1C1E24";
+      const gridSize = 40;
+      const startX = Math.floor((-pan.x / zoom) / gridSize) * gridSize - gridSize;
+      const startY = Math.floor((-pan.y / zoom) / gridSize) * gridSize - gridSize;
+      const endX = startX + (width / zoom) + gridSize * 2;
+      const endY = startY + (heightPx / zoom) + gridSize * 2;
+
+      for (let x = startX; x < endX; x += gridSize) {
+        for (let y = startY; y < endY; y += gridSize) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Draw Edges
+      for (const edge of edges) {
+        const src = nodeMap.get(edge.source);
+        const tgt = nodeMap.get(edge.target);
+        if (!src || !tgt) continue;
+
+        const isGlowing = activeGlows.has(tgt.id);
+        ctx.beginPath();
+        ctx.moveTo(src.x, src.y);
+        ctx.lineTo(tgt.x, tgt.y);
+        ctx.strokeStyle = isGlowing ? "#34D399" : edge.color;
+        ctx.globalAlpha = isGlowing ? 0.9 : 0.22;
+        ctx.lineWidth = isGlowing ? 2.5 : 1.2;
+        if (isGlowing) {
+          ctx.setLineDash([4, 3]);
+        } else {
+          ctx.setLineDash([]);
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.setLineDash([]);
+
+      // Draw Nodes
+      const hovered = hoveredNodeRef.current;
+      for (const node of nodes) {
+        const isGlowing = activeGlows.has(node.id);
+        const isSpawned = spawned.has(node.id);
+        const isHovered = hovered?.id === node.id;
+
+        // Glowing Halo
+        if (isGlowing || isSpawned) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.r * 2.4, 0, Math.PI * 2);
+          ctx.strokeStyle = isGlowing ? "#34D399" : "#FBBF24";
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.6 + Math.sin(time * 6) * 0.3;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Base Circle
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#111215";
+        ctx.fill();
+        ctx.strokeStyle = isGlowing ? "#34D399" : isSpawned ? "#FBBF24" : node.color;
+        ctx.lineWidth = isGlowing ? 2.8 : isHovered ? 2.4 : 1.6;
+        ctx.stroke();
+
+        // Inner Core
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.r * 0.7, 0, Math.PI * 2);
+        ctx.fillStyle = isGlowing ? "#34D399" : node.color;
+        ctx.globalAlpha = isGlowing ? 0.9 : 0.38;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+
+        // Labels
+        if (node.type === "root" || node.type === "library" || isGlowing || isHovered) {
+          ctx.font = `${node.type === "root" ? "bold 13px" : node.type === "library" ? "bold 12px" : "11px"} Inter, sans-serif`;
+          ctx.fillStyle = isGlowing ? "#34D399" : "#FFFFFF";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const labelText = node.label.length > 22 ? node.label.slice(0, 20) + "…" : node.label;
+          ctx.fillText(labelText, node.x, node.type === "doc" ? node.y - 14 : node.y + 4);
+        }
+      }
+
+      ctx.restore();
+      animFrameRef.current = requestAnimationFrame(render);
     };
 
-    animFrameRef.current = requestAnimationFrame(tick);
+    animFrameRef.current = requestAnimationFrame(render);
+
+    const handleResize = () => resize();
+    window.addEventListener("resize", handleResize);
+
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      container.removeEventListener("wheel", onWheel);
+      window.removeEventListener("resize", handleResize);
     };
-  }, [draggingNodeId]);
+  }, [activeGlowIds, recentlySpawnedIds]);
 
-  const handleCanvasMouseDown = (e) => {
-    if (e.target.tagName !== "circle") {
-      setIsPanning(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  // Hit-testing helpers for interaction
+  const getNodeAtPoint = (screenX, screenY) => {
+    if (!containerRef.current) return null;
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = screenX - rect.left;
+    const mouseY = screenY - rect.top;
+    const worldX = (mouseX - panRef.current.x) / zoomRef.current;
+    const worldY = (mouseY - panRef.current.y) / zoomRef.current;
+
+    for (let i = nodesRef.current.length - 1; i >= 0; i--) {
+      const n = nodesRef.current[i];
+      const dx = worldX - n.x;
+      const dy = worldY - n.y;
+      const hitRadius = (n.r + 6);
+      if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+        return n;
+      }
+    }
+    return null;
+  };
+
+  const handleMouseDown = (e) => {
+    const node = getNodeAtPoint(e.clientX, e.clientY);
+    if (node) {
+      draggingNodeRef.current = node;
+    } else {
+      isPanningRef.current = true;
+      dragStartRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
     }
   };
 
-  const handleCanvasMouseMove = (e) => {
-    if (isPanning) {
-      setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    } else if (draggingNodeId && containerRef.current) {
+  const handleMouseMove = (e) => {
+    if (isPanningRef.current) {
+      panRef.current = {
+        x: e.clientX - dragStartRef.current.x,
+        y: e.clientY - dragStartRef.current.y
+      };
+    } else if (draggingNodeRef.current && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      const node = nodesRef.current.find(n => n.id === draggingNodeId);
-      if (node) {
-        node.x = (mouseX - pan.x) / zoom;
-        node.y = (mouseY - pan.y) / zoom;
-        node.vx = 0;
-        node.vy = 0;
-      }
+      const node = draggingNodeRef.current;
+      node.x = (mouseX - panRef.current.x) / zoomRef.current;
+      node.y = (mouseY - panRef.current.y) / zoomRef.current;
+      node.vx = 0;
+      node.vy = 0;
+    } else {
+      const hovered = getNodeAtPoint(e.clientX, e.clientY);
+      hoveredNodeRef.current = hovered;
     }
   };
 
-  const handleCanvasMouseUp = () => {
-    setIsPanning(false);
-    setDraggingNodeId(null);
-  };
-
-  const handleWheel = (e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(z => Math.max(0.2, Math.min(2.5, z * delta)));
+  const handleMouseUp = (e) => {
+    if (draggingNodeRef.current && !isPanningRef.current) {
+      const node = draggingNodeRef.current;
+      if (node.docId) {
+        onOpenDoc(node.library, node.docId);
+      }
+    }
+    isPanningRef.current = false;
+    draggingNodeRef.current = null;
   };
 
   const resetView = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setPan({ x: rect.width / 2, y: rect.height / 2 });
-      setZoom(0.38);
+      panRef.current = { x: rect.width / 2, y: rect.height / 2 };
+      zoomRef.current = 0.38;
     }
   };
-
-  const nodes = nodesRef.current;
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-  const edges = edgesRef.current;
 
   return (
     <div 
       ref={containerRef}
       style={{ height }}
       className="relative w-full bg-[#0A0B0D] border border-[#1E2026] rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none shadow-2xl"
-      onMouseDown={handleCanvasMouseDown}
-      onMouseMove={handleCanvasMouseMove}
-      onMouseUp={handleCanvasMouseUp}
-      onMouseLeave={handleCanvasMouseUp}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
       {/* Obsidian Header Pill */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-3 pointer-events-none">
         <div className="flex items-center gap-2.5 bg-[#14161A]/90 backdrop-blur-md border border-[#272B33] px-4 py-2 rounded-xl text-xs font-mono shadow-xl">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="text-white font-semibold tracking-tight">Obsidian Knowledge Mesh</span>
-          <span className="text-[#71717A]">({nodes.filter(n => n.type === 'doc').length} live neurons)</span>
+          <span className="text-[#71717A]">({nodesRef.current.filter(n => n.type === 'doc').length} live neurons)</span>
         </div>
 
         {lastSearchInfo && (
@@ -413,126 +560,12 @@ function ObsidianGraphCanvas({ topology, activeGlowIds, recentlySpawnedIds, last
 
       {/* Control Buttons */}
       <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 bg-[#14161A]/90 backdrop-blur border border-[#272B33] p-1.5 rounded-xl text-xs shadow-xl">
-        <button onClick={() => setZoom(z => Math.min(2.5, z * 1.2))} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">+</button>
-        <button onClick={() => setZoom(z => Math.max(0.2, z * 0.8))} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">-</button>
+        <button onClick={() => { zoomRef.current = Math.min(2.5, zoomRef.current * 1.2); }} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">+</button>
+        <button onClick={() => { zoomRef.current = Math.max(0.12, zoomRef.current * 0.8); }} className="w-7 h-7 flex items-center justify-center hover:bg-[#22252C] text-white rounded-lg transition font-mono">-</button>
         <button onClick={resetView} className="px-3 py-1 hover:bg-[#22252C] text-xs text-[#A1A1AA] hover:text-white rounded-lg transition font-mono">Reset</button>
       </div>
 
-      <svg className="w-full h-full">
-        <defs>
-          <pattern id="canvas-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-            <circle cx="15" cy="15" r="0.8" fill="#1C1E24" />
-          </pattern>
-          <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#canvas-grid)" />
-
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Spring Edges */}
-          {edges.map(edge => {
-            const src = nodeMap.get(edge.source);
-            const tgt = nodeMap.get(edge.target);
-            if (!src || !tgt) return null;
-            const isGlowing = activeGlowIds.has(tgt.id);
-
-            return (
-              <line
-                key={edge.id}
-                x1={src.x}
-                y1={src.y}
-                x2={tgt.x}
-                y2={tgt.y}
-                stroke={isGlowing ? "#34D399" : edge.color}
-                strokeWidth={isGlowing ? "2.5" : "1.2"}
-                strokeOpacity={isGlowing ? "0.9" : "0.2"}
-                strokeDasharray={isGlowing ? "4 3" : "none"}
-                filter={isGlowing ? "url(#neon-glow)" : undefined}
-              />
-            );
-          })}
-
-          {/* Draggable Obsidian Nodes */}
-          {nodes.map(node => {
-            const isGlowing = activeGlowIds.has(node.id);
-            const isSpawned = recentlySpawnedIds.has(node.id);
-            const isHovered = hoveredNode?.id === node.id;
-
-            return (
-              <g 
-                key={node.id} 
-                transform={`translate(${node.x}, ${node.y})`}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setDraggingNodeId(node.id);
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (node.docId) onOpenDoc(node.library, node.docId);
-                }}
-                onMouseEnter={() => setHoveredNode(node)}
-                onMouseLeave={() => setHoveredNode(null)}
-                className={node.docId ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}
-              >
-                {isGlowing && (
-                  <circle
-                    r={node.r * 2.8}
-                    fill="none"
-                    stroke="#34D399"
-                    strokeWidth="1.8"
-                    strokeOpacity="0.9"
-                    className="animate-ping"
-                  />
-                )}
-
-                {isSpawned && (
-                  <circle
-                    r={node.r * 2.2}
-                    fill="none"
-                    stroke="#FBBF24"
-                    strokeWidth="2"
-                    strokeOpacity="0.9"
-                    className="animate-ping"
-                  />
-                )}
-
-                <circle
-                  r={node.r}
-                  fill="#111215"
-                  stroke={isGlowing ? "#34D399" : isSpawned ? "#FBBF24" : node.color}
-                  strokeWidth={isGlowing ? "3" : isHovered ? "2.5" : "1.8"}
-                  filter={isGlowing ? "url(#neon-glow)" : undefined}
-                  className="transition-transform duration-100"
-                />
-                <circle
-                  r={node.r * 0.72}
-                  fill={isGlowing ? "#34D399" : node.color}
-                  fillOpacity={isGlowing ? "0.9" : "0.35"}
-                />
-
-                {(node.type === "root" || node.type === "library" || isGlowing || isHovered) && (
-                  <text
-                    textAnchor="middle"
-                    dy={node.type === "doc" ? "-13" : "4"}
-                    fill={isGlowing ? "#34D399" : "#FFFFFF"}
-                    fontSize={node.type === "root" ? "12" : node.type === "library" ? "11" : "10"}
-                    fontWeight={isGlowing ? "700" : "500"}
-                    fontFamily="Inter, sans-serif"
-                    className="pointer-events-none select-none"
-                  >
-                    {node.label.length > 20 ? node.label.slice(0, 18) + "…" : node.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </g>
-      </svg>
+      <canvas ref={canvasRef} className="w-full h-full block" />
     </div>
   );
 }
@@ -659,8 +692,44 @@ function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
 
-    // SSE Stream
+    // SSE Stream with event batching
     const es = new EventSource("/api/events");
+    let pendingBatch = [];
+    let batchTimer = null;
+
+    const flushDocBatch = () => {
+      if (pendingBatch.length === 0) return;
+      const incoming = [...pendingBatch];
+      pendingBatch = [];
+
+      setTopology(prev => {
+        const existingSet = new Set(prev.docs.map(d => d.id));
+        const toAdd = incoming.filter(d => !existingSet.has(d.docId)).map(d => ({
+          id: d.docId,
+          library: d.library,
+          title: d.title,
+          path: d.path,
+          symbols: d.symbols || []
+        }));
+        if (toAdd.length === 0) return prev;
+        return {
+          ...prev,
+          docs: [...prev.docs, ...toAdd]
+        };
+      });
+
+      const newIds = incoming.map(d => d.docId);
+      setRecentlySpawnedIds(prev => new Set([...prev, ...newIds]));
+      setTimeout(() => {
+        setRecentlySpawnedIds(prev => {
+          const next = new Set(prev);
+          for (const id of newIds) next.delete(id);
+          return next;
+        });
+      }, 3500);
+      loadLibraries();
+    };
+
     es.addEventListener("search_fired", (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -680,22 +749,13 @@ function App() {
     es.addEventListener("doc_indexed", (e) => {
       try {
         const data = JSON.parse(e.data);
-        setTopology(prev => {
-          if (prev.docs.some(d => d.id === data.docId)) return prev;
-          return {
-            ...prev,
-            docs: [...prev.docs, { id: data.docId, library: data.library, title: data.title, path: data.path, symbols: data.symbols || [] }]
-          };
-        });
-        setRecentlySpawnedIds(prev => new Set([...prev, data.docId]));
-        setTimeout(() => {
-          setRecentlySpawnedIds(prev => {
-            const next = new Set(prev);
-            next.delete(data.docId);
-            return next;
-          });
-        }, 4000);
-        loadLibraries();
+        pendingBatch.push(data);
+        if (!batchTimer) {
+          batchTimer = setTimeout(() => {
+            batchTimer = null;
+            flushDocBatch();
+          }, 350);
+        }
       } catch {}
     });
 
