@@ -930,130 +930,132 @@ function App() {
           
           {/* VIEW: OVERVIEW */}
           {view === "page" && (
-            <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0A0B0D] p-8 max-w-6xl w-full mx-auto gap-8">
-              
-              {/* Hero Banner */}
-              <div className="flex items-center justify-between pb-2 border-b border-[#1A1C22]">
-                <div className="flex flex-col gap-1">
-                  <h1 className="text-2xl font-bold text-white tracking-tight">Documentation Grounding Core</h1>
-                  <p className="text-xs text-[#71717A]">Offline high-density semantic vector search with real-time neural activity.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 bg-[#14161A] border border-[#242731] rounded-xl text-xs font-mono text-emerald-400 font-semibold">
-                    {totalDocsCount} Indexed Documents
-                  </span>
-                  <span className="px-3 py-1 bg-[#14161A] border border-[#242731] rounded-xl text-xs font-mono text-[#38BDF8]">
-                    {libraries.length} Collections
-                  </span>
-                </div>
-              </div>
-
-              {/* Active Jobs Progress Banner */}
-              {activeJobs.length > 0 && (
-                <div className="flex flex-col gap-2.5 bg-[#14161A] border border-[#242731] p-4 rounded-2xl shadow-xl animate-fade-in">
-                  <div className="text-xs font-semibold text-white flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-ping"></span>
-                    <span>Active Ingestion ({activeJobs.length} jobs in progress)</span>
+            <main className="flex-1 w-full h-full overflow-y-auto bg-[#0A0B0D]">
+              <div className="max-w-6xl w-full mx-auto p-8 flex flex-col gap-8">
+                
+                {/* Hero Banner */}
+                <div className="flex items-center justify-between pb-2 border-b border-[#1A1C22]">
+                  <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Documentation Grounding Core</h1>
+                    <p className="text-xs text-[#71717A]">Offline high-density semantic vector search with real-time neural activity.</p>
                   </div>
-                  {activeJobs.map(job => (
-                    <div key={job.id} className="flex flex-col gap-1.5 bg-[#0C0D0F] p-3 rounded-xl border border-[#1C1E24]">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-white font-semibold">{job.library}</span>
-                        <span className="font-mono text-[#38BDF8]">{job.progress}% ({job.processedFiles}/{job.totalFiles || '?'})</span>
-                      </div>
-                      <div className="w-full bg-[#1A1C22] h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-[#38BDF8] h-full transition-all duration-300 rounded-full" style={{ width: job.progress + '%' }}></div>
-                      </div>
-                      {job.currentFile && (
-                        <span className="text-[10px] font-mono text-[#71717A] truncate">{job.currentFile}</span>
-                      )}
+                  <div className="flex items-center gap-3">
+                    <span className="px-3 py-1 bg-[#14161A] border border-[#242731] rounded-xl text-xs font-mono text-emerald-400 font-semibold">
+                      {totalDocsCount} Indexed Documents
+                    </span>
+                    <span className="px-3 py-1 bg-[#14161A] border border-[#242731] rounded-xl text-xs font-mono text-[#38BDF8]">
+                      {libraries.length} Collections
+                    </span>
+                  </div>
+                </div>
+
+                {/* Active Jobs Progress Banner */}
+                {activeJobs.length > 0 && (
+                  <div className="flex flex-col gap-2.5 bg-[#14161A] border border-[#242731] p-4 rounded-2xl shadow-xl animate-fade-in">
+                    <div className="text-xs font-semibold text-white flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-ping"></span>
+                      <span>Active Ingestion ({activeJobs.length} jobs in progress)</span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    {activeJobs.map(job => (
+                      <div key={job.id} className="flex flex-col gap-1.5 bg-[#0C0D0F] p-3 rounded-xl border border-[#1C1E24]">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-white font-semibold">{job.library}</span>
+                          <span className="font-mono text-[#38BDF8]">{job.progress}% ({job.processedFiles}/{job.totalFiles || '?'})</span>
+                        </div>
+                        <div className="w-full bg-[#1A1C22] h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-[#38BDF8] h-full transition-all duration-300 rounded-full" style={{ width: job.progress + '%' }}></div>
+                        </div>
+                        {job.currentFile && (
+                          <span className="text-[10px] font-mono text-[#71717A] truncate">{job.currentFile}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-              {/* Obsidian Physics Graph View */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#71717A] flex items-center gap-2">
-                    <Icons.network className="w-3.5 h-3.5 text-emerald-400" /> LIVE NEURAL MESH (FORCE-DIRECTED)
-                  </span>
-                  <button 
-                    onClick={() => setView("graph")}
-                    className="text-xs text-[#38BDF8] hover:underline font-mono"
-                  >
-                    Open Full-Screen Universe →
-                  </button>
-                </div>
-
-                <ObsidianGraphCanvas
-                  topology={topology}
-                  activeGlowIds={activeGlowIds}
-                  recentlySpawnedIds={recentlySpawnedIds}
-                  lastSearchInfo={lastSearchInfo}
-                  onOpenDoc={(lib, docId) => {
-                    openLibrary(lib);
-                    setTimeout(() => loadDoc(docId), 150);
-                  }}
-                  height="440px"
-                />
-              </div>
-
-              {/* Collections Grid Cards */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#71717A]">COLLECTIONS ({libraries.length})</span>
-                  <button
-                    onClick={() => setIngestOpen(true)}
-                    className="text-xs px-3 py-1.5 rounded-xl bg-[#181A20] hover:bg-[#22252C] border border-[#272B33] text-white transition flex items-center gap-1.5 font-medium"
-                  >
-                    <Icons.plus className="w-3 h-3 text-emerald-400" /> Ingest Documentation
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  {libraries.map(lib => (
-                    <div 
-                      key={lib.name}
-                      onClick={() => openLibrary(lib.name)}
-                      className="p-4 bg-[#111216] hover:bg-[#16181E] border border-[#1E2027] hover:border-[#2C303B] rounded-2xl transition cursor-pointer flex flex-col justify-between h-36 group shadow-lg"
+                {/* Obsidian Physics Graph View */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#71717A] flex items-center gap-2">
+                      <Icons.network className="w-3.5 h-3.5 text-emerald-400" /> LIVE NEURAL MESH (FORCE-DIRECTED)
+                    </span>
+                    <button 
+                      onClick={() => setView("graph")}
+                      className="text-xs text-[#38BDF8] hover:underline font-mono"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-[#1A1C23] flex items-center justify-center text-white">
-                            <Icons.book className="w-4 h-4 text-emerald-400" />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{lib.name}</span>
-                            <span className="text-[10px] font-mono text-[#71717A]">{lib.latestVersion}</span>
-                          </div>
-                        </div>
-                        <span className="text-xs font-mono text-[#71717A] bg-[#16181E] px-2 py-0.5 rounded-lg border border-[#22252D]">
-                          {lib.docCount} docs
-                        </span>
-                      </div>
+                      Open Full-Screen Universe →
+                    </button>
+                  </div>
 
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-[#1C1E24]">
-                        <span className="text-[11px] text-[#71717A] truncate max-w-[160px]">Open Reader</span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={(e) => openEditModal(lib, e)}
-                            title="Edit & Re-index"
-                            className="p-1 text-[#71717A] hover:text-white rounded-lg hover:bg-[#22252D] transition"
-                          >
-                            <Icons.edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={(e) => handleDeleteLibrary(lib.name, e)}
-                            title="Delete"
-                            className="p-1 text-[#71717A] hover:text-rose-400 rounded-lg hover:bg-[#22252D] transition"
-                          >
-                            <Icons.trash className="w-3.5 h-3.5" />
-                          </button>
+                  <ObsidianGraphCanvas
+                    topology={topology}
+                    activeGlowIds={activeGlowIds}
+                    recentlySpawnedIds={recentlySpawnedIds}
+                    lastSearchInfo={lastSearchInfo}
+                    onOpenDoc={(lib, docId) => {
+                      openLibrary(lib);
+                      setTimeout(() => loadDoc(docId), 150);
+                    }}
+                    height="440px"
+                  />
+                </div>
+
+                {/* Collections Grid Cards */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#71717A]">COLLECTIONS ({libraries.length})</span>
+                    <button
+                      onClick={() => setIngestOpen(true)}
+                      className="text-xs px-3 py-1.5 rounded-xl bg-[#181A20] hover:bg-[#22252C] border border-[#272B33] text-white transition flex items-center gap-1.5 font-medium"
+                    >
+                      <Icons.plus className="w-3 h-3 text-emerald-400" /> Ingest Documentation
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    {libraries.map(lib => (
+                      <div 
+                        key={lib.name}
+                        onClick={() => openLibrary(lib.name)}
+                        className="p-4 bg-[#111216] hover:bg-[#16181E] border border-[#1E2027] hover:border-[#2C303B] rounded-2xl transition cursor-pointer flex flex-col justify-between h-36 group shadow-lg"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-[#1A1C23] flex items-center justify-center text-white">
+                              <Icons.book className="w-4 h-4 text-emerald-400" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-white text-sm group-hover:text-emerald-400 transition">{lib.name}</span>
+                              <span className="text-[10px] font-mono text-[#71717A]">{lib.latestVersion}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-mono text-[#71717A] bg-[#16181E] px-2 py-0.5 rounded-lg border border-[#22252D]">
+                            {lib.docCount} docs
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-[#1C1E24]">
+                          <span className="text-[11px] text-[#71717A] truncate max-w-[160px]">Open Reader</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={(e) => openEditModal(lib, e)}
+                              title="Edit & Re-index"
+                              className="p-1 text-[#71717A] hover:text-white rounded-lg hover:bg-[#22252D] transition"
+                            >
+                              <Icons.edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteLibrary(lib.name, e)}
+                              title="Delete"
+                              className="p-1 text-[#71717A] hover:text-rose-400 rounded-lg hover:bg-[#22252D] transition"
+                            >
+                              <Icons.trash className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </main>
@@ -1222,83 +1224,85 @@ function App() {
 
           {/* VIEW: SETTINGS */}
           {view === "settings" && (
-            <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0A0B0D] p-10 max-w-4xl w-full mx-auto gap-6">
-              <div className="flex items-center justify-between pb-3 border-b border-[#1A1C22]">
-                <h1 className="text-xl font-bold text-white tracking-tight">System Settings & Engine Defaults</h1>
-                <button 
-                  onClick={() => setView("page")}
-                  className="px-3 py-1 rounded-xl bg-[#16181E] border border-[#242731] hover:bg-[#20232B] text-xs text-[#A1A1AA] hover:text-white font-mono"
-                >
-                  Close
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveSettings} className="flex flex-col gap-6">
-                
-                {/* Local Vectorizer Card */}
-                <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-3 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icons.cpu className="w-4 h-4 text-emerald-400" />
-                      <span className="text-sm font-semibold text-white">Local ONNX Vector Engine (Quantized BGE-Small)</span>
-                    </div>
-                    <span className="notion-tag-green font-mono px-2 py-0.5 rounded text-[11px]">Active • 384 Dim</span>
-                  </div>
-                  <p className="text-xs text-[#71717A] leading-relaxed">
-                    Runs 100% offline via local ONNX runtime. Zero API keys, zero rate-limits, and private memory execution.
-                  </p>
-                </div>
-
-                {/* Multi-Engine Search */}
-                <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-3 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icons.globe className="w-4 h-4 text-[#38BDF8]" />
-                      <span className="text-sm font-semibold text-white">Native Stealth Multi-Engine Meta Search</span>
-                    </div>
-                    <span className="notion-tag-blue font-mono px-2 py-0.5 rounded text-[11px]">Parallel Live Fallback</span>
-                  </div>
-                  <p className="text-xs text-[#71717A] leading-relaxed">
-                    Aggregates live results directly from Bing RSS, DuckDuckGo Lite, Brave, GitHub API, and Wikipedia with rotating browser fingerprints.
-                  </p>
-                </div>
-
-                {/* Crawler Options */}
-                <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-4 shadow-lg">
-                  <span className="text-sm font-semibold text-white">Crawler Ingestion Limits</span>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[#A1A1AA] block mb-1 text-xs">Default Max Pages</label>
-                      <input
-                        type="number"
-                        value={config.crawler?.maxPages || 500}
-                        onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxPages: Number(e.target.value) } })}
-                        className="w-full bg-[#0C0D0F] border border-[#22252D] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[#A1A1AA] block mb-1 text-xs">Default Max Crawl Depth</label>
-                      <input
-                        type="number"
-                        value={config.crawler?.maxDepth || 4}
-                        onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxDepth: Number(e.target.value) } })}
-                        className="w-full bg-[#0C0D0F] border border-[#22252D] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-xs font-mono text-emerald-400">{configMsg}</span>
-                  <button
-                    type="submit"
-                    disabled={savingConfig}
-                    className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition shadow-lg"
+            <main className="flex-1 w-full h-full overflow-y-auto bg-[#0A0B0D]">
+              <div className="max-w-4xl w-full mx-auto p-10 flex flex-col gap-6">
+                <div className="flex items-center justify-between pb-3 border-b border-[#1A1C22]">
+                  <h1 className="text-xl font-bold text-white tracking-tight">System Settings & Engine Defaults</h1>
+                  <button 
+                    onClick={() => setView("page")}
+                    className="px-3 py-1 rounded-xl bg-[#16181E] border border-[#242731] hover:bg-[#20232B] text-xs text-[#A1A1AA] hover:text-white font-mono"
                   >
-                    {savingConfig ? "Saving..." : "Save Configuration"}
+                    Close
                   </button>
                 </div>
-              </form>
+
+                <form onSubmit={handleSaveSettings} className="flex flex-col gap-6">
+                  
+                  {/* Local Vectorizer Card */}
+                  <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icons.cpu className="w-4 h-4 text-emerald-400" />
+                        <span className="text-sm font-semibold text-white">Local ONNX Vector Engine (Quantized BGE-Small)</span>
+                      </div>
+                      <span className="notion-tag-green font-mono px-2 py-0.5 rounded text-[11px]">Active • 384 Dim</span>
+                    </div>
+                    <p className="text-xs text-[#71717A] leading-relaxed">
+                      Runs 100% offline via local ONNX runtime. Zero API keys, zero rate-limits, and private memory execution.
+                    </p>
+                  </div>
+
+                  {/* Multi-Engine Search */}
+                  <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icons.globe className="w-4 h-4 text-[#38BDF8]" />
+                        <span className="text-sm font-semibold text-white">Native Stealth Multi-Engine Meta Search</span>
+                      </div>
+                      <span className="notion-tag-blue font-mono px-2 py-0.5 rounded text-[11px]">Parallel Live Fallback</span>
+                    </div>
+                    <p className="text-xs text-[#71717A] leading-relaxed">
+                      Aggregates live results directly from Bing RSS, DuckDuckGo Lite, Brave, GitHub API, and Wikipedia with rotating browser fingerprints.
+                    </p>
+                  </div>
+
+                  {/* Crawler Options */}
+                  <div className="p-5 bg-[#111216] border border-[#1E2027] rounded-2xl flex flex-col gap-4 shadow-lg">
+                    <span className="text-sm font-semibold text-white">Crawler Ingestion Limits</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[#A1A1AA] block mb-1 text-xs">Default Max Pages</label>
+                        <input
+                          type="number"
+                          value={config.crawler?.maxPages || 500}
+                          onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxPages: Number(e.target.value) } })}
+                          className="w-full bg-[#0C0D0F] border border-[#22252D] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[#A1A1AA] block mb-1 text-xs">Default Max Crawl Depth</label>
+                        <input
+                          type="number"
+                          value={config.crawler?.maxDepth || 4}
+                          onChange={(e) => setConfig({ ...config, crawler: { ...config.crawler, maxDepth: Number(e.target.value) } })}
+                          className="w-full bg-[#0C0D0F] border border-[#22252D] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs font-mono text-emerald-400">{configMsg}</span>
+                    <button
+                      type="submit"
+                      disabled={savingConfig}
+                      className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition shadow-lg"
+                    >
+                      {savingConfig ? "Saving..." : "Save Configuration"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </main>
           )}
 
