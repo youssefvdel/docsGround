@@ -19,7 +19,8 @@ const { useState, useEffect, useRef } = React;
       close: (props) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className || "w-4 h-4"}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
       database: (props) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className || "w-4 h-4"}><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>,
       cpu: (props) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className || "w-4 h-4"}><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>,
-      globe: (props) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className || "w-4 h-4"}><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+      globe: (props) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className || "w-4 h-4"}><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>,
+      network: (props) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className || "w-4 h-4"}><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
     };
 
     function MarkdownRenderer({ content }) {
@@ -29,6 +30,159 @@ const { useState, useEffect, useRef } = React;
           className="notion-markdown select-text" 
           dangerouslySetInnerHTML={{ __html: formattedHtml }} 
         />
+      );
+    }
+
+    function KnowledgeGraph({ doc, libraryDocs, onSelectDoc }) {
+      const canvasRef = useRef(null);
+      const [pan, setPan] = useState({ x: 300, y: 250 });
+      const [zoom, setZoom] = useState(1);
+      const [isDragging, setIsDragging] = useState(false);
+      const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+      const [hoveredNode, setHoveredNode] = useState(null);
+
+      // Build graph nodes: Center = current doc; First ring = doc symbols; Outer ring = sibling docs in library
+      const symbols = doc.symbols || [];
+      const siblings = (libraryDocs || []).filter(d => d.id !== doc.id).slice(0, 10);
+
+      const nodes = [
+        { id: doc.id, label: doc.title || doc.path, type: "center", x: 0, y: 0, color: "#4DAB9A", r: 38 }
+      ];
+
+      // Symbol Nodes in inner orbit (radius = 160)
+      symbols.slice(0, 8).forEach((sym, i) => {
+        const angle = (i / Math.min(symbols.length, 8)) * 2 * Math.PI;
+        nodes.push({
+          id: `sym-${sym}`,
+          label: sym,
+          type: "symbol",
+          x: Math.cos(angle) * 160,
+          y: Math.sin(angle) * 160,
+          color: "#529CCA",
+          r: 22,
+          symbolName: sym
+        });
+      });
+
+      // Sibling Document Nodes in outer orbit (radius = 310)
+      siblings.forEach((sib, i) => {
+        const angle = (i / siblings.length) * 2 * Math.PI + 0.35;
+        nodes.push({
+          id: sib.id,
+          label: sib.title || sib.path,
+          type: "doc",
+          x: Math.cos(angle) * 310,
+          y: Math.sin(angle) * 310,
+          color: "#9A6DD7",
+          r: 28,
+          docId: sib.id
+        });
+      });
+
+      const handleMouseDown = (e) => {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      };
+
+      const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+      };
+
+      const handleMouseUp = () => setIsDragging(false);
+
+      const handleWheel = (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom(z => Math.max(0.4, Math.min(2.5, z * delta)));
+      };
+
+      return (
+        <div 
+          className="relative w-full h-[650px] bg-[#141414] border border-[#262626] rounded-xl overflow-hidden cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          {/* Legend & Controls Overlay */}
+          <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-[#1f1f1f]/90 backdrop-blur border border-[#2e2e2e] p-2 rounded-lg text-[11px] font-mono">
+            <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-2.5 h-2.5 rounded-full bg-[#4DAB9A]"></span> Active Doc</span>
+            <span className="flex items-center gap-1.5 text-[#529CCA]"><span className="w-2.5 h-2.5 rounded-full bg-[#529CCA]"></span> Symbols</span>
+            <span className="flex items-center gap-1.5 text-[#9A6DD7]"><span className="w-2.5 h-2.5 rounded-full bg-[#9A6DD7]"></span> Sibling Docs</span>
+          </div>
+
+          <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1 bg-[#1f1f1f]/90 border border-[#2e2e2e] p-1 rounded-lg text-xs">
+            <button onClick={() => setZoom(z => Math.min(2.5, z * 1.2))} className="px-2 py-1 hover:bg-[#2e2e2e] text-white rounded">+</button>
+            <button onClick={() => setZoom(z => Math.max(0.4, z * 0.8))} className="px-2 py-1 hover:bg-[#2e2e2e] text-white rounded">-</button>
+            <button onClick={() => { setPan({ x: 300, y: 250 }); setZoom(1); }} className="px-2 py-1 hover:bg-[#2e2e2e] text-xs text-[#9B9B9B] hover:text-white rounded">Reset</button>
+          </div>
+
+          <svg className="w-full h-full">
+            {/* Background Grid Pattern */}
+            <defs>
+              <pattern id="graph-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <circle cx="12" cy="12" r="0.7" fill="#2a2a2a" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#graph-grid)" />
+
+            <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+              {/* Edges */}
+              {nodes.filter(n => n.type !== "center").map(target => (
+                <path
+                  key={`edge-${target.id}`}
+                  d={`M 0 0 Q ${target.x * 0.4} ${target.y * 0.7} ${target.x} ${target.y}`}
+                  fill="none"
+                  stroke={target.type === "symbol" ? "#529CCA" : "#9A6DD7"}
+                  strokeWidth="1.5"
+                  strokeOpacity="0.45"
+                  strokeDasharray={target.type === "symbol" ? "3 3" : "none"}
+                />
+              ))}
+
+              {/* Nodes */}
+              {nodes.map(node => (
+                <g 
+                  key={node.id} 
+                  transform={`translate(${node.x}, ${node.y})`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (node.docId) onSelectDoc(node.docId);
+                  }}
+                  onMouseEnter={() => setHoveredNode(node)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  className={node.docId ? "cursor-pointer" : "cursor-default"}
+                >
+                  <circle
+                    r={node.r}
+                    fill="#1e1e1e"
+                    stroke={node.color}
+                    strokeWidth={hoveredNode?.id === node.id ? "3" : "2"}
+                    className="transition-all duration-150"
+                  />
+                  <circle
+                    r={node.r * 0.7}
+                    fill={node.color}
+                    fillOpacity="0.18"
+                  />
+                  <text
+                    textAnchor="middle"
+                    dy="4"
+                    fill="#ffffff"
+                    fontSize={node.type === "center" ? "12" : "10"}
+                    fontWeight="500"
+                    fontFamily="Inter, sans-serif"
+                    className="pointer-events-none select-none"
+                  >
+                    {node.label.length > 14 ? node.label.slice(0, 12) + "…" : node.label}
+                  </text>
+                </g>
+              ))}
+            </g>
+          </svg>
+        </div>
       );
     }
 
@@ -61,6 +215,7 @@ const { useState, useEffect, useRef } = React;
       const [currentLib, setCurrentLib] = useState(null);
       const [libraryDocs, setLibraryDocs] = useState([]);
       const [selectedDoc, setSelectedDoc] = useState(null);
+      const [docTab, setDocTab] = useState("content");
       const [copied, setCopied] = useState(false);
 
       const [activeJobs, setActiveJobs] = useState([]);
@@ -593,20 +748,52 @@ const { useState, useEffect, useRef } = React;
                       </button>
                     </div>
 
-                    {selectedDoc.symbols && selectedDoc.symbols.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[11px] font-mono text-[#787774] uppercase">Symbols:</span>
-                        {selectedDoc.symbols.slice(0, 10).map((sym) => (
-                          <span key={sym} className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#222222] text-[#D4D4D4] border border-[#2a2a2a]">
-                            {sym}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="pb-16">
-                      <MarkdownRenderer content={selectedDoc.content} />
+                    {/* View Switcher: Markdown Document vs Symbol Graph */}
+                    <div className="flex items-center gap-2 border-b border-[#262626] pb-2">
+                      <button
+                        onClick={() => setDocTab("content")}
+                        className={"px-3 py-1.5 rounded text-xs transition flex items-center gap-1.5 " +
+                          (docTab === "content" ? "bg-[#2c2c2c] text-white font-medium shadow-sm" : "text-[#787774] hover:text-white hover:bg-[#202020]")}
+                      >
+                        <Icons.document className="w-3.5 h-3.5" />
+                        <span>Document Markdown</span>
+                      </button>
+                      <button
+                        onClick={() => setDocTab("graph")}
+                        className={"px-3 py-1.5 rounded text-xs transition flex items-center gap-1.5 " +
+                          (docTab === "graph" ? "bg-[#2c2c2c] text-white font-medium shadow-sm" : "text-[#787774] hover:text-white hover:bg-[#202020]")}
+                      >
+                        <Icons.network className="w-3.5 h-3.5 text-[#529CCA]" />
+                        <span>Interactive Knowledge Graph</span>
+                      </button>
                     </div>
+
+                    {docTab === "graph" ? (
+                      <div className="flex flex-col gap-3">
+                        <KnowledgeGraph
+                          doc={selectedDoc}
+                          libraryDocs={libraryDocs}
+                          onSelectDoc={(id) => loadDoc(id)}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        {selectedDoc.symbols && selectedDoc.symbols.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-mono text-[#787774] uppercase">Symbols:</span>
+                            {selectedDoc.symbols.slice(0, 10).map((sym) => (
+                              <span key={sym} className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#222222] text-[#D4D4D4] border border-[#2a2a2a]">
+                                {sym}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="pb-16">
+                          <MarkdownRenderer content={selectedDoc.content} />
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-xs text-[#787774]">
